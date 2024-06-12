@@ -270,7 +270,7 @@ int main(int argc, const char* argv[])
         rangeEnd = parser.get<string>("e");
     }
 
-    std::string inputFile = parser.get<std::string>("--hexfile"); // Mendapatkan argumen hexfile
+    std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
 
     if (!inputFile.empty()) {
         std::vector<std::pair<std::string, std::string>> hexRanges = readHexRangesFromFile(inputFile);
@@ -279,13 +279,8 @@ int main(int argc, const char* argv[])
             std::string startRange = range.first;
             std::string endRange = range.second;
 
-            Int rangeStart;
-            Int rangeEnd;
-            rangeStart.SetBase16(startRange.c_str());
-            rangeEnd.SetBase16(endRange.c_str());
-
             KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                outputFile, sse, maxFound, rangeStart, rangeEnd, should_exit);
+                outputFile, sse, maxFound, startRange, endRange, should_exit);
             keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
         }
     } else {
