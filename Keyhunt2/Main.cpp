@@ -10,9 +10,6 @@
 #ifndef WIN64
 #include <signal.h>
 #include <unistd.h>
-#include <fstream>
-#include <vector>
-#include <string>
 #endif
 
 #define RELEASE "1.00"
@@ -45,43 +42,12 @@ const char* astr = "P2PKH Address (single address mode)                         
 const char* pstr = "Range start in hex                                                                              ";
 const char* qstr = "Range end in hex, if not provided then, endRange would be: startRange + 10000000000000000       ";
 
-// ----------------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-void getInts(string name, vector<int>& tokens, const string& text, char sep)
-{
-
-	size_t start = 0, end = 0;
-	tokens.clear();
-	int item;
-
-	try {
-
-		while ((end = text.find(sep, start)) != string::npos) {
-			item = std::stoi(text.substr(start, end - start));
-			tokens.push_back(item);
-			start = end + 1;
-		}
-
-		item = std::stoi(text.substr(start));
-		tokens.push_back(item);
-
-	}
-	catch (std::invalid_argument&) {
-
-		printf("Invalid %s argument, number expected\n", name.c_str());
-		exit(-1);
-
-	}
-
-}
-
 // Fungsi untuk membaca file dan menyimpan rentang hex dari setiap baris
 std::vector<std::pair<std::string, std::string>> readHexRangesFromFile(const std::string& filePath) {
     std::ifstream infile(filePath);
     std::vector<std::pair<std::string, std::string>> ranges;
     std::string line;
-    
+
     while (std::getline(infile, line)) {
         size_t delimiterPos = line.find(',');
         if (delimiterPos != std::string::npos) {
@@ -90,58 +56,89 @@ std::vector<std::pair<std::string, std::string>> readHexRangesFromFile(const std
             ranges.push_back(std::make_pair(startRange, endRange));
         }
     }
-    
+
     return ranges;
+}
+
+// ----------------------------------------------------------------------------
+// ----------------------------------------------------------------------------
+
+void getInts(string name, vector<int>& tokens, const string& text, char sep)
+{
+
+    size_t start = 0, end = 0;
+    tokens.clear();
+    int item;
+
+    try {
+
+        while ((end = text.find(sep, start)) != string::npos) {
+            item = std::stoi(text.substr(start, end - start));
+            tokens.push_back(item);
+            start = end + 1;
+        }
+
+        item = std::stoi(text.substr(start));
+        tokens.push_back(item);
+
+    }
+    catch (std::invalid_argument&) {
+
+        printf("Invalid %s argument, number expected\n", name.c_str());
+        exit(-1);
+
+    }
+
 }
 
 #ifdef WIN64
 BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
 {
-	switch (fdwCtrlType) {
-	case CTRL_C_EVENT:
-		//printf("\n\nCtrl-C event\n\n");
-		should_exit = true;
-		return TRUE;
+    switch (fdwCtrlType) {
+    case CTRL_C_EVENT:
+        //printf("\n\nCtrl-C event\n\n");
+        should_exit = true;
+        return TRUE;
 
-	default:
-		return TRUE;
-	}
+    default:
+        return TRUE;
+    }
 }
 #else
 void CtrlHandler(int signum) {
-	printf("\n\nBYE\n");
-	exit(signum);
+    printf("\n\nBYE\n");
+    exit(signum);
 }
 #endif
 
 int main(int argc, const char* argv[])
 {
-	// Global Init
-	Timer::Init();
-	rseed(Timer::getSeed32());
+    // Global Init
+    Timer::Init();
+    rseed(Timer::getSeed32());
 
-	bool gpuEnable = false;
-	bool gpuAutoGrid = true;
-	int searchMode = SEARCH_COMPRESSED;
-	vector<int> gpuId = { 0 };
-	vector<int> gridSize;
-	//string seed = "";
-	string outputFile = "Found.txt";
-	string hash160File = "";
-	string address = "";
-	//string hash160 = "";
-	std::vector<unsigned char> hash160;
-	bool singleAddress = false;
-	int nbCPUThread = Timer::getCoreNumber();
-	//int nbit = 0;
-	bool tSpecified = false;
-	bool sse = true;
-	uint32_t maxFound = 1024 * 64;
-	//uint64_t rekey = 0;
-	//bool paranoiacSeed = false;
-	string rangeStart = "";
-	string rangeEnd = "";
-	hash160.clear();
+    bool gpuEnable = false;
+    bool gpuAutoGrid = true;
+    int searchMode = SEARCH_COMPRESSED;
+    vector<int> gpuId = { 0 };
+    vector<int> gridSize;
+    //string seed = "";
+    string outputFile = "Found.txt";
+    string hash160File = "";
+    string address = "";
+    //string hash160 = "";
+    std::vector<unsigned char> hash160;
+    bool singleAddress = false;
+    int nbCPUThread = Timer::getCoreNumber();
+    //int nbit = 0;
+    bool tSpecified = false;
+    bool sse = true;
+    uint32_t maxFound = 1024 * 64;
+    //uint64_t rekey = 0;
+    //bool paranoiacSeed = false;
+    string rangeStart = "";
+    string rangeEnd = "";
+    hash160.clear();
 
     ArgumentParser parser("KeyHunt-Cuda-2", "Hunt for Bitcoin private keys.");
 
@@ -155,9 +152,13 @@ int main(int argc, const char* argv[])
     parser.add_argument("-o", "--out", ostr, false);
     parser.add_argument("-m", "--max", mstr, false);
     parser.add_argument("-t", "--thread", tstr, false);
+    //parser.add_argument("-e", "--nosse", estr, false);
     parser.add_argument("-l", "--list", lstr, false);
+    //parser.add_argument("-r", "--rkey", rstr, false);
+    //parser.add_argument("-n", "--nbit", nstr, false);
     parser.add_argument("-f", "--file", fstr, false);
     parser.add_argument("-a", "--addr", astr, false);
+
     parser.add_argument("-s", "--start", pstr, false);
     parser.add_argument("-e", "--end", qstr, false);
     parser.add_argument("--hexfile", "Input file containing hex ranges", false); // Argumen baru
@@ -269,7 +270,7 @@ int main(int argc, const char* argv[])
         rangeEnd = parser.get<string>("e");
     }
 
-    std::string inputFile = parser.get("--hexfile"); // Mendapatkan argumen hexfile
+    std::string inputFile = parser.get<std::string>("--hexfile"); // Mendapatkan argumen hexfile
 
     if (!inputFile.empty()) {
         std::vector<std::pair<std::string, std::string>> hexRanges = readHexRangesFromFile(inputFile);
@@ -280,8 +281,8 @@ int main(int argc, const char* argv[])
 
             Int rangeStart;
             Int rangeEnd;
-            rangeStart.SetBase16(startRange);
-            rangeEnd.SetBase16(endRange);
+            rangeStart.SetBase16(startRange.c_str());
+            rangeEnd.SetBase16(endRange.c_str());
 
             KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
                 outputFile, sse, maxFound, rangeStart, rangeEnd, should_exit);
