@@ -3,6 +3,7 @@
 #include "Base58.h"
 #include "ArgParse.h"
 #include <fstream>
+#include <vector>
 #include <string>
 #include <string.h>
 #include <stdexcept>
@@ -42,22 +43,17 @@ const char* astr = "P2PKH Address (single address mode)                         
 const char* pstr = "Range start in hex                                                                              ";
 const char* qstr = "Range end in hex, if not provided then, endRange would be: startRange + 10000000000000000       ";
 
-// Fungsi untuk membaca file dan menyimpan rentang hex dari setiap baris
-std::vector<std::pair<std::string, std::string>> readHexRangesFromFile(const std::string& filePath) {
+// Fungsi untuk membaca file dan menyimpan setiap baris sebagai nilai hex
+std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     std::ifstream infile(filePath);
-    std::vector<std::pair<std::string, std::string>> ranges;
+    std::vector<std::string> values;
     std::string line;
 
     while (std::getline(infile, line)) {
-        size_t delimiterPos = line.find(',');
-        if (delimiterPos != std::string::npos) {
-            std::string startRange = line.substr(0, delimiterPos);
-            std::string endRange = line.substr(delimiterPos + 1);
-            ranges.push_back(std::make_pair(startRange, endRange));
-        }
+        values.push_back(line);
     }
 
-    return ranges;
+    return values;
 }
 
 // ----------------------------------------------------------------------------
@@ -158,10 +154,7 @@ int main(int argc, const char* argv[])
     //parser.add_argument("-n", "--nbit", nstr, false);
     parser.add_argument("-f", "--file", fstr, false);
     parser.add_argument("-a", "--addr", astr, false);
-
-    parser.add_argument("-s", "--start", pstr, false);
-    parser.add_argument("-e", "--end", qstr, false);
-    parser.add_argument("--hexfile", "Input file containing hex ranges", false); // Argumen baru
+    parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen baru
 
     parser.enable_help();
 
@@ -262,26 +255,23 @@ int main(int argc, const char* argv[])
         }
     }
 
-    if (parser.exists("start")) {
-        rangeStart = parser.get<string>("s");
-    }
-
-    if (parser.exists("end")) {
-        rangeEnd = parser.get<string>("e");
-    }
-
     std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
 
     if (!inputFile.empty()) {
-        std::vector<std::pair<std::string, std::string>> hexRanges = readHexRangesFromFile(inputFile);
+        std::vector<std::string> hexValues = readHexValuesFromFile(inputFile);
 
-        for (const auto& range : hexRanges) {
-            std::string startRange = range.first;
-            std::string endRange = range.second;
+        for (const auto& hex : hexValues) {
+            Int privateKey;
+            privateKey.SetBase16(hex.c_str());
 
-            KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                outputFile, sse, maxFound, startRange, endRange, should_exit);
-            keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
+            // Proses pubkey dan address dari privateKey di sini
+
+            // Contoh placeholder untuk proses lebih lanjut
+            std::string pubkey = "GeneratedPubKey";  // Gantilah dengan kode untuk menghasilkan pubkey
+            std::string address = "GeneratedAddress"; // Gantilah dengan kode untuk menghasilkan address
+
+            // Tampilkan atau simpan hasilnya
+            std::cout << "Hex: " << hex << " -> PubKey: " << pubkey << " -> Address: " << address << std::endl;
         }
     } else {
         if (gridSize.size() == 0) {
