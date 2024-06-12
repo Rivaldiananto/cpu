@@ -19,30 +19,6 @@ using namespace std;
 using namespace argparse;
 bool should_exit = false;
 
-// ----------------------------------------------------------------------------
-// ----------------------------------------------------------------------------
-
-const char* vstr = "Print version                                                                                   ";
-const char* cstr = "Check the working of the codes                                                                  ";
-const char* ustr = "Search uncompressed addresses                                                                   ";
-const char* bstr = "Search both uncompressed or compressed addresses                                                ";
-const char* gstr = "Enable GPU calculation                                                                          ";
-const char* istr = "GPU ids: 0,1...: List of GPU(s) to use, default is 0                                            ";
-const char* xstr = "GPU gridsize: g0x,g0y,g1x,g1y, ...: Specify GPU(s) kernel gridsize, default is 8*(Device MP count),128";
-const char* ostr = "Outputfile: Output results to the specified file, default: Found.txt                            ";
-const char* mstr = "Specify maximun number of addresses found by each kernel call                                   ";
-//const char* sstr = "Seed: Specify a seed for the base key, default is random                                        ";
-const char* tstr = "threadNumber: Specify number of CPU thread, default is number of core                           ";
-//const char* estr = "Disable SSE hash function                                                                       ";
-const char* lstr = "List cuda enabled devices                                                                       ";
-//const char* rstr = "Rkey: Rekey interval in MegaKey, default is disabled                                            ";
-//const char* nstr = "Number of base key random bits                                                                  ";
-const char* fstr = "Ripemd160 binary hash file path                                                                 ";
-const char* astr = "P2PKH Address (single address mode)                                                             ";
-
-const char* pstr = "Range start in hex                                                                              ";
-const char* qstr = "Range end in hex, if not provided then, endRange would be: startRange + 10000000000000000       ";
-
 // Fungsi untuk membaca file dan menyimpan setiap baris sebagai nilai hex
 std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     std::ifstream infile(filePath);
@@ -57,45 +33,32 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
 }
 
 // ----------------------------------------------------------------------------
-// ----------------------------------------------------------------------------
 
-void getInts(string name, vector<int>& tokens, const string& text, char sep)
-{
-
+void getInts(string name, vector<int>& tokens, const string& text, char sep) {
     size_t start = 0, end = 0;
     tokens.clear();
     int item;
 
     try {
-
         while ((end = text.find(sep, start)) != string::npos) {
             item = std::stoi(text.substr(start, end - start));
             tokens.push_back(item);
             start = end + 1;
         }
-
         item = std::stoi(text.substr(start));
         tokens.push_back(item);
-
-    }
-    catch (std::invalid_argument&) {
-
+    } catch (std::invalid_argument&) {
         printf("Invalid %s argument, number expected\n", name.c_str());
         exit(-1);
-
     }
-
 }
 
 #ifdef WIN64
-BOOL WINAPI CtrlHandler(DWORD fdwCtrlType)
-{
+BOOL WINAPI CtrlHandler(DWORD fdwCtrlType) {
     switch (fdwCtrlType) {
     case CTRL_C_EVENT:
-        //printf("\n\nCtrl-C event\n\n");
         should_exit = true;
         return TRUE;
-
     default:
         return TRUE;
     }
@@ -107,8 +70,7 @@ void CtrlHandler(int signum) {
 }
 #endif
 
-int main(int argc, const char* argv[])
-{
+int main(int argc, const char* argv[]) {
     // Global Init
     Timer::Init();
     rseed(Timer::getSeed32());
@@ -118,42 +80,34 @@ int main(int argc, const char* argv[])
     int searchMode = SEARCH_COMPRESSED;
     vector<int> gpuId = { 0 };
     vector<int> gridSize;
-    //string seed = "";
     string outputFile = "Found.txt";
     string hash160File = "";
     string address = "";
-    //string hash160 = "";
     std::vector<unsigned char> hash160;
     bool singleAddress = false;
     int nbCPUThread = Timer::getCoreNumber();
-    //int nbit = 0;
     bool tSpecified = false;
     bool sse = true;
     uint32_t maxFound = 1024 * 64;
-    //uint64_t rekey = 0;
-    //bool paranoiacSeed = false;
     string rangeStart = "";
     string rangeEnd = "";
     hash160.clear();
 
     ArgumentParser parser("KeyHunt-Cuda-2", "Hunt for Bitcoin private keys.");
 
-    parser.add_argument("-v", "--version", vstr, false);
-    parser.add_argument("-c", "--check", cstr, false);
-    parser.add_argument("-u", "--uncomp", ustr, false);
-    parser.add_argument("-b", "--both", bstr, false);
-    parser.add_argument("-g", "--gpu", gstr, false);
-    parser.add_argument("-i", "--gpui", istr, false);
-    parser.add_argument("-x", "--gpux", xstr, false);
-    parser.add_argument("-o", "--out", ostr, false);
-    parser.add_argument("-m", "--max", mstr, false);
-    parser.add_argument("-t", "--thread", tstr, false);
-    //parser.add_argument("-e", "--nosse", estr, false);
-    parser.add_argument("-l", "--list", lstr, false);
-    //parser.add_argument("-r", "--rkey", rstr, false);
-    //parser.add_argument("-n", "--nbit", nstr, false);
-    parser.add_argument("-f", "--file", fstr, false);
-    parser.add_argument("-a", "--addr", astr, false);
+    parser.add_argument("-v", "--version", "Print version", false);
+    parser.add_argument("-c", "--check", "Check the working of the codes", false);
+    parser.add_argument("-u", "--uncomp", "Search uncompressed addresses", false);
+    parser.add_argument("-b", "--both", "Search both uncompressed or compressed addresses", false);
+    parser.add_argument("-g", "--gpu", "Enable GPU calculation", false);
+    parser.add_argument("-i", "--gpui", "GPU ids: 0,1...: List of GPU(s) to use, default is 0", false);
+    parser.add_argument("-x", "--gpux", "GPU gridsize: g0x,g0y,g1x,g1y, ...: Specify GPU(s) kernel gridsize, default is 8*(Device MP count),128", false);
+    parser.add_argument("-o", "--out", "Outputfile: Output results to the specified file, default: Found.txt", false);
+    parser.add_argument("-m", "--max", "Specify maximun number of addresses found by each kernel call", false);
+    parser.add_argument("-t", "--thread", "threadNumber: Specify number of CPU thread, default is number of core", false);
+    parser.add_argument("-l", "--list", "List cuda enabled devices", false);
+    parser.add_argument("-f", "--file", "Ripemd160 binary hash file path", false);
+    parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen baru
 
     parser.enable_help();
@@ -261,17 +215,13 @@ int main(int argc, const char* argv[])
         std::vector<std::string> hexValues = readHexValuesFromFile(inputFile);
 
         for (const auto& hex : hexValues) {
-            Int privateKey;
-            privateKey.SetBase16(hex.c_str());
+            rangeStart = hex;
+            rangeEnd = hex; // Sesuai dengan logika yang sudah ada
 
-            // Proses pubkey dan address dari privateKey di sini
-
-            // Contoh placeholder untuk proses lebih lanjut
-            std::string pubkey = "GeneratedPubKey";  // Gantilah dengan kode untuk menghasilkan pubkey
-            std::string address = "GeneratedAddress"; // Gantilah dengan kode untuk menghasilkan address
-
-            // Tampilkan atau simpan hasilnya
-            std::cout << "Hex: " << hex << " -> PubKey: " << pubkey << " -> Address: " << address << std::endl;
+            // Menggunakan KeyHunt untuk memproses rentang ini
+            KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
+                outputFile, sse, maxFound, rangeStart, rangeEnd, should_exit);
+            keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
         }
     } else {
         if (gridSize.size() == 0) {
@@ -304,8 +254,6 @@ int main(int argc, const char* argv[])
             exit(-1);
         }
 
-        // Let one CPU core free per gpu is gpu is enabled
-        // It will avoid to hang the system
         if (!tSpecified && nbCPUThread > 1 && gpuEnable)
             nbCPUThread -= (int)gpuId.size();
         if (nbCPUThread < 0)
