@@ -26,7 +26,9 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     std::string line;
 
     while (std::getline(infile, line)) {
-        values.push_back(line);
+        if (!line.empty()) {
+            values.push_back(line);
+        }
     }
 
     return values;
@@ -215,12 +217,13 @@ int main(int argc, const char* argv[]) {
         std::vector<std::string> hexValues = readHexValuesFromFile(inputFile);
 
         for (const auto& hex : hexValues) {
-            rangeStart = hex;
-            rangeEnd = hex; // Sesuai dengan logika yang sudah ada
+            Int startRange, endRange;
+            startRange.SetBase16(hex.c_str());
+            endRange.SetBase16(hex.c_str());
 
             // Menggunakan KeyHunt untuk memproses rentang ini
             KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                outputFile, sse, maxFound, rangeStart, rangeEnd, should_exit);
+                outputFile, sse, maxFound, startRange.to_string(), endRange.to_string(), should_exit);
             keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
         }
     } else {
