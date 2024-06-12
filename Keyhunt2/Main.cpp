@@ -223,7 +223,7 @@ int main(int argc, const char* argv[]) {
 
             // Menggunakan KeyHunt untuk memproses rentang ini
             KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                outputFile, sse, maxFound, startRange.to_string(), endRange.to_string(), should_exit);
+                outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
             keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
         }
     } else {
