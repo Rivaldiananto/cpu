@@ -26,6 +26,7 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     std::string line;
 
     while (std::getline(infile, line)) {
+        // Mengabaikan baris kosong
         if (!line.empty()) {
             values.push_back(line);
         }
@@ -217,9 +218,16 @@ int main(int argc, const char* argv[]) {
         std::vector<std::string> hexValues = readHexValuesFromFile(inputFile);
 
         for (const auto& hex : hexValues) {
+            // Debug print untuk memeriksa nilai hex yang dibaca
+            std::cout << "Processing hex value: " << hex << std::endl;
+
             Int startRange, endRange;
             startRange.SetBase16(hex.c_str());
             endRange.SetBase16(hex.c_str());
+
+            // Debug print untuk memeriksa nilai range yang dihasilkan
+            std::cout << "Start range: " << startRange.GetBase16() << std::endl;
+            std::cout << "End range: " << endRange.GetBase16() << std::endl;
 
             // Menggunakan KeyHunt untuk memproses rentang ini
             KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
