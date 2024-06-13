@@ -217,6 +217,8 @@ int main(int argc, const char* argv[]) {
     if (!inputFile.empty()) {
         std::vector<std::string> hexValues = readHexValuesFromFile(inputFile);
 
+        std::cout << "Total hex values read: " << hexValues.size() << std::endl;
+
         for (const auto& hex : hexValues) {
             // Debug print untuk memeriksa nilai hex yang dibaca
             std::cout << "Processing hex value: " << hex << std::endl;
