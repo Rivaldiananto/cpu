@@ -5,7 +5,8 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <string.h>
+#include <bitset>
+#include <sstream>
 #include <stdexcept>
 #include <cassert>
 #ifndef WIN64
@@ -33,6 +34,24 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     }
 
     return values;
+}
+
+// Fungsi untuk mengubah biner menjadi hex berdasarkan panjang pattern yang diberikan
+std::vector<std::string> convertBinToHex(int bitLength) {
+    std::vector<std::string> hexValues;
+    int maxPattern = 1 << bitLength;
+
+    for (int i = 0; i < maxPattern; ++i) {
+        std::string binPattern = std::bitset<64>(i).to_string().substr(64 - bitLength);
+        std::stringstream ss;
+        for (size_t j = 0; j < binPattern.size(); j += 4) {
+            std::bitset<4> nibble(binPattern.substr(j, 4));
+            ss << std::hex << nibble.to_ulong();
+        }
+        hexValues.push_back(ss.str());
+    }
+
+    return hexValues;
 }
 
 // ----------------------------------------------------------------------------
@@ -111,7 +130,8 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-l", "--list", "List cuda enabled devices", false);
     parser.add_argument("-f", "--file", "Ripemd160 binary hash file path", false);
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
-    parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen baru
+    parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
+    parser.add_argument("-Bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
 
     parser.enable_help();
 
@@ -213,9 +233,16 @@ int main(int argc, const char* argv[]) {
     }
 
     std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
+    int bitLength = parser.exists("Bit") ? std::stoi(parser.get<std::string>("Bit")) : 0; // Mendapatkan panjang pattern biner
 
-    if (!inputFile.empty()) {
-        std::vector<std::string> hexValues = readHexValuesFromFile(inputFile);
+    if (!inputFile.empty() || bitLength > 0) {
+        std::vector<std::string> hexValues;
+
+        if (!inputFile.empty()) {
+            hexValues = readHexValuesFromFile(inputFile);
+        } else if (bitLength > 0) {
+            hexValues = convertBinToHex(bitLength);
+        }
 
         std::cout << "Total hex values read: " << hexValues.size() << std::endl;
 
