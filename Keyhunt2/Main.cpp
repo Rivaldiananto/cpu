@@ -24,6 +24,22 @@ using namespace std;
 using namespace argparse;
 bool should_exit = false;
 
+// Fungsi untuk membaca file dan menyimpan setiap baris sebagai nilai hex
+std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
+    std::ifstream infile(filePath);
+    std::vector<std::string> values;
+    std::string line;
+
+    while (std::getline(infile, line)) {
+        // Mengabaikan baris kosong
+        if (!line.empty()) {
+            values.push_back(line);
+        }
+    }
+
+    return values;
+}
+
 // Fungsi untuk mengonversi integer ke string biner 6-bit
 std::string intToBinary6(int num) {
     std::bitset<6> bin(num);
