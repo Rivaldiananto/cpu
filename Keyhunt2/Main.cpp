@@ -131,7 +131,7 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-f", "--file", "Ripemd160 binary hash file path", false);
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
-    parser.add_argument("-b", "--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
+    parser.add_argument("-k", "--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
 
     parser.enable_help();
 
