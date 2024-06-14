@@ -13,6 +13,10 @@
 #include <signal.h>
 #include <unistd.h>
 #endif
+#include <gmp.h>
+#include <chrono>
+#include <cstdlib>
+#include <iomanip>
 
 #define RELEASE "1.00"
 
@@ -20,42 +24,60 @@ using namespace std;
 using namespace argparse;
 bool should_exit = false;
 
-// Fungsi untuk membaca file dan menyimpan setiap baris sebagai nilai hex
-std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
-    std::ifstream infile(filePath);
-    std::vector<std::string> values;
-    std::string line;
+// Fungsi untuk mengonversi integer ke string biner 6-bit
+std::string intToBinary6(int num) {
+    std::bitset<6> bin(num);
+    return bin.to_string();
+}
 
-    while (std::getline(infile, line)) {
-        // Mengabaikan baris kosong
-        if (!line.empty()) {
-            values.push_back(line);
-        }
+// Fungsi untuk menghasilkan semua kombinasi biner 6-bit
+std::vector<std::string> generateAllCombinations() {
+    std::vector<std::string> allCombinations;
+    for (int i = 0; i < 64; ++i) {
+        allCombinations.push_back(intToBinary6(i));
     }
+    return allCombinations;
+}
 
-    return values;
+// Fungsi konversi dari biner ke heksadesimal
+std::string binaryToHex(const std::string &binaryStr) {
+    mpz_t num;
+    mpz_init(num);
+    mpz_set_str(num, binaryStr.c_str(), 2);  // Set num to the value of binaryStr interpreted as a binary number
+    char* hex_cstr = mpz_get_str(NULL, 16, num);  // Convert num to a hexadecimal string
+    std::string hex_str(hex_cstr);
+    free(hex_cstr);
+    mpz_clear(num);
+    return hex_str;
 }
 
 // Fungsi untuk menggabungkan n pattern biner dan mengubahnya menjadi hex
-std::vector<std::pair<std::string, std::string>> convertBinToHex(int bitLength, int numPatterns) {
-    std::vector<std::pair<std::string, std::string>> hexRanges;
-    int maxPattern = 1 << bitLength;  // Jumlah total pola biner
+std::vector<std::string> convertBinToHex(int numPatterns) {
+    std::vector<std::string> hexValues;
+    std::vector<std::string> allCombinations = generateAllCombinations();
 
-    for (int i = 0; i < maxPattern; i += numPatterns) {
-        std::string combinedPattern;
-        for (int j = 0; j < numPatterns && (i + j) < maxPattern; ++j) {
-            combinedPattern += std::bitset<6>(i + j).to_string();
+    mpz_t totalCombinations;
+    mpz_init(totalCombinations);
+    mpz_ui_pow_ui(totalCombinations, 64, numPatterns);  // 64^numPatterns
+
+    mpz_t i;
+    mpz_init_set_ui(i, 0);
+    while(mpz_cmp(i, totalCombinations) < 0) {  // Iterate through all combinations
+        unsigned long long combination = mpz_get_ui(i);
+        std::string result;
+        for (int j = 0; j < numPatterns; ++j) {
+            int index = combination % 64;
+            result += allCombinations[index];
+            combination /= 64;
         }
-        std::stringstream ss;
-        for (size_t k = 0; k < combinedPattern.size(); k += 4) {
-            std::bitset<4> nibble(combinedPattern.substr(k, 4));
-            ss << std::hex << nibble.to_ulong();
-        }
-        std::string hexValue = ss.str();
-        hexRanges.push_back({hexValue, hexValue});
+        std::string hexResult = binaryToHex(result);  // Konversi ke heksadesimal
+        hexValues.push_back(hexResult);
+        mpz_add_ui(i, i, 1);
     }
 
-    return hexRanges;
+    mpz_clear(totalCombinations);
+    mpz_clear(i);
+    return hexValues;
 }
 
 // ----------------------------------------------------------------------------
@@ -242,46 +264,40 @@ int main(int argc, const char* argv[]) {
     int numPatterns = parser.exists("numpatterns") ? std::stoi(parser.get<std::string>("numpatterns")) : 1; // Mendapatkan jumlah pattern biner yang digabungkan
 
     if (!inputFile.empty() || bitLength > 0) {
-        std::vector<std::pair<std::string, std::string>> hexRanges;
+        std::vector<std::string> hexValues;
 
         if (!inputFile.empty()) {
-            auto hexValues = readHexValuesFromFile(inputFile);
-            for (const auto& hex : hexValues) {
-                hexRanges.push_back({hex, hex});
-            }
+            hexValues = readHexValuesFromFile(inputFile);
         } else if (bitLength > 0) {
-            hexRanges = convertBinToHex(bitLength, numPatterns);
+            hexValues = convertBinToHex(numPatterns);
         }
 
-        std::cout << "Total hex values read: " << hexRanges.size() << std::endl;
+        std::cout << "Total hex values read: " << hexValues.size() << std::endl;
 
-        for (const auto& range : hexRanges) {
-            std::string startRange = range.first;
-            std::string endRange = range.second;
-
+        for (const auto& hex : hexValues) {
             // Debug print untuk memeriksa nilai hex yang dibaca
-            std::cout << "Processing hex value: " << startRange << std::endl;
+            std::cout << "Processing hex value: " << hex << std::endl;
 
-            Int startInt, endInt;
+            Int startRange, endRange;
             try {
-                startInt.SetBase16(startRange.c_str());
-                endInt.SetBase16(endRange.c_str());
+                startRange.SetBase16(hex.c_str());
+                endRange.SetBase16(hex.c_str());
             } catch (const std::invalid_argument& e) {
-                std::cerr << "Error: Invalid hex value: " << startRange << std::endl;
+                std::cerr << "Error: Invalid hex value: " << hex << std::endl;
                 continue;
             }
 
             // Debug print untuk memeriksa nilai range yang dihasilkan
-            std::cout << "Start range: " << startInt.GetBase16() << std::endl;
-            std::cout << "End range: " << endInt.GetBase16() << std::endl;
+            std::cout << "Start range: " << startRange.GetBase16() << std::endl;
+            std::cout << "End range: " << endRange.GetBase16() << std::endl;
 
             // Menggunakan KeyHunt untuk memproses rentang ini
             try {
                 KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                    outputFile, sse, maxFound, startInt.GetBase16(), endInt.GetBase16(), should_exit);
+                    outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
                 keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
             } catch (const std::exception& e) {
-                std::cerr << "Error processing hex value " << startRange << ": " << e.what() << std::endl;
+                std::cerr << "Error processing hex value " << hex << ": " << e.what() << std::endl;
                 continue;
             }
         }
