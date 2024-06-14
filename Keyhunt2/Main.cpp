@@ -224,17 +224,27 @@ int main(int argc, const char* argv[]) {
             std::cout << "Processing hex value: " << hex << std::endl;
 
             Int startRange, endRange;
-            startRange.SetBase16(hex.c_str());
-            endRange.SetBase16(hex.c_str());
+            try {
+                startRange.SetBase16(hex.c_str());
+                endRange.SetBase16(hex.c_str());
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Error: Invalid hex value: " << hex << std::endl;
+                continue;
+            }
 
             // Debug print untuk memeriksa nilai range yang dihasilkan
             std::cout << "Start range: " << startRange.GetBase16() << std::endl;
             std::cout << "End range: " << endRange.GetBase16() << std::endl;
 
             // Menggunakan KeyHunt untuk memproses rentang ini
-            KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
-            keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
+            try {
+                KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
+                    outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
+                keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
+            } catch (const std::exception& e) {
+                std::cerr << "Error processing hex value " << hex << ": " << e.what() << std::endl;
+                continue;
+            }
         }
     } else {
         if (gridSize.size() == 0) {
