@@ -39,7 +39,7 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
 // Fungsi untuk menggabungkan n pattern biner dan mengubahnya menjadi hex
 std::vector<std::string> convertBinToHex(int bitLength, int numPatterns) {
     std::vector<std::string> hexValues;
-    int maxPattern = 1 << bitLength;
+    int maxPattern = 1 << bitLength;  // Jumlah total pola biner
 
     for (int i = 0; i < maxPattern; i += numPatterns) {
         std::string combinedPattern;
