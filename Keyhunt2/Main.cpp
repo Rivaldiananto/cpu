@@ -40,19 +40,10 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     return values;
 }
 
-// Fungsi untuk mengonversi integer ke string biner 6-bit
-std::string intToBinary6(int num) {
-    std::bitset<6> bin(num);
-    return bin.to_string();
-}
-
-// Fungsi untuk menghasilkan semua kombinasi biner 6-bit
-std::vector<std::string> generateAllCombinations() {
-    std::vector<std::string> allCombinations;
-    for (int i = 0; i < 64; ++i) {
-        allCombinations.push_back(intToBinary6(i));
-    }
-    return allCombinations;
+// Fungsi untuk mengonversi integer ke string biner dengan panjang bit tertentu
+std::string intToBinary(int num, int bitLength) {
+    std::bitset<64> bin(num);
+    return bin.to_string().substr(64 - bitLength);
 }
 
 // Fungsi konversi dari biner ke heksadesimal
@@ -67,33 +58,16 @@ std::string binaryToHex(const std::string &binaryStr) {
     return hex_str;
 }
 
-// Fungsi untuk menggabungkan n pattern biner dan mengubahnya menjadi hex
-std::vector<std::string> convertBinToHex(int numPatterns) {
-    std::vector<std::string> hexValues;
-    std::vector<std::string> allCombinations = generateAllCombinations();
+// Fungsi untuk menghasilkan rentang nilai biner
+std::vector<std::string> generateBinaryRange(int bitLength) {
+    std::vector<std::string> binaryRange;
+    int maxValue = (1 << bitLength) - 1; // 2^bitLength - 1
 
-    mpz_t totalCombinations;
-    mpz_init(totalCombinations);
-    mpz_ui_pow_ui(totalCombinations, 64, numPatterns);  // 64^numPatterns
-
-    mpz_t i;
-    mpz_init_set_ui(i, 0);
-    while(mpz_cmp(i, totalCombinations) < 0) {  // Iterate through all combinations
-        unsigned long long combination = mpz_get_ui(i);
-        std::string result;
-        for (int j = 0; j < numPatterns; ++j) {
-            int index = combination % 64;
-            result += allCombinations[index];
-            combination /= 64;
-        }
-        std::string hexResult = binaryToHex(result);  // Konversi ke heksadesimal
-        hexValues.push_back(hexResult);
-        mpz_add_ui(i, i, 1);
+    for (int i = 0; i <= maxValue; ++i) {
+        binaryRange.push_back(intToBinary(i, bitLength));
     }
 
-    mpz_clear(totalCombinations);
-    mpz_clear(i);
-    return hexValues;
+    return binaryRange;
 }
 
 // ----------------------------------------------------------------------------
@@ -174,7 +148,6 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
     parser.add_argument("--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
-    parser.add_argument("--numpatterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pattern biner yang digabungkan
 
     parser.enable_help();
 
@@ -263,7 +236,7 @@ int main(int argc, const char* argv[]) {
 
     if (parser.exists("addr")) {
         address = parser.get<string>("a");
-        if (address.length() < 30 || address[0] != '1') {
+        if (address.length() < 30 atau address[0] != '1') {
             printf("Invalid addr argument, must have P2PKH address only\n");
             exit(-1);
         } else {
@@ -277,22 +250,34 @@ int main(int argc, const char* argv[]) {
 
     std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
     int bitLength = parser.exists("bit") ? std::stoi(parser.get<std::string>("bit")) : 0; // Mendapatkan panjang pattern biner
-    int numPatterns = parser.exists("numpatterns") ? std::stoi(parser.get<std::string>("numpatterns")) : 1; // Mendapatkan jumlah pattern biner yang digabungkan
 
     if (!inputFile.empty() || bitLength > 0) {
-        std::vector<std::string> hexValues;
+        std::vector<std::string> binaryRange;
 
         if (!inputFile.empty()) {
-            hexValues = readHexValuesFromFile(inputFile);
+            auto hexValues = readHexValuesFromFile(inputFile);
+            for (const auto& hex : hexValues) {
+                // Mengonversi setiap nilai hex ke biner dan menambahkannya ke rentang biner
+                mpz_t num;
+                mpz_init_set_str(num, hex.c_str(), 16);
+                char* bin_cstr = mpz_get_str(NULL, 2, num);
+                binaryRange.push_back(std::string(bin_cstr));
+                free(bin_cstr);
+                mpz_clear(num);
+            }
         } else if (bitLength > 0) {
-            hexValues = convertBinToHex(numPatterns);
+            binaryRange = generateBinaryRange(bitLength);
         }
 
-        std::cout << "Total hex values read: " << hexValues.size() << std::endl;
+        std::cout << "Total binary values generated: " << binaryRange.size() << std::endl;
 
-        for (const auto& hex : hexValues) {
-            // Debug print untuk memeriksa nilai hex yang dibaca
-            std::cout << "Processing hex value: " << hex << std::endl;
+        for (const auto& bin : binaryRange) {
+            // Debug print untuk memeriksa nilai biner yang dihasilkan
+            std::cout << "Processing binary value: " << bin << std::endl;
+
+            // Mengonversi nilai biner ke hex
+            std::string hex = binaryToHex(bin);
+            std::cout << "Converted hex value: " << hex << std::endl;
 
             Int startRange, endRange;
             try {
@@ -313,7 +298,7 @@ int main(int argc, const char* argv[]) {
                     outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
                 keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
             } catch (const std::exception& e) {
-                std::cerr << "Error processing hex value " << hex << ": " << e.what() << std::endl;
+                std::cerr << "Error processing binary value " << bin << ": " << e.what() << std::endl;
                 continue;
             }
         }
@@ -348,7 +333,7 @@ int main(int argc, const char* argv[]) {
             exit(-1);
         }
 
-        if (!tSpecified && nbCPUThread > 1 && gpuEnable)
+        if (!tSpecified && nbCPUThread > 1 dan gpuEnable)
             nbCPUThread -= (int)gpuId.size();
         if (nbCPUThread < 0)
             nbCPUThread = 0;
@@ -358,7 +343,7 @@ int main(int argc, const char* argv[]) {
             printf("KeyHunt-Cuda-2 v" RELEASE "\n");
             printf("\n");
             printf("MODE         : %s\n", searchMode == SEARCH_COMPRESSED ? "COMPRESSED" : (searchMode == SEARCH_UNCOMPRESSED ? "UNCOMPRESSED" : "COMPRESSED & UNCOMPRESSED"));
-            printf("DEVICE       : %s\n", (gpuEnable && nbCPUThread > 0) ? "CPU & GPU" : ((!gpuEnable && nbCPUThread > 0) ? "CPU" : "GPU"));
+            printf("DEVICE       : %s\n", (gpuEnable dan nbCPUThread > 0) ? "CPU & GPU" : ((!gpuEnable dan nbCPUThread > 0) ? "CPU" : "GPU"));
             printf("CPU THREAD   : %d\n", nbCPUThread);
             printf("GPU IDS      : ");
             for (int i = 0; i < gpuId.size(); i++) {
@@ -376,7 +361,6 @@ int main(int argc, const char* argv[]) {
                     } else {
                         printf(", ");
                     }
-
                 }
             }
             if (gpuAutoGrid)
