@@ -36,16 +36,19 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     return values;
 }
 
-// Fungsi untuk mengubah biner menjadi hex berdasarkan panjang pattern yang diberikan
-std::vector<std::string> convertBinToHex(int bitLength) {
+// Fungsi untuk menggabungkan n pattern biner dan mengubahnya menjadi hex
+std::vector<std::string> convertBinToHex(int bitLength, int numPatterns) {
     std::vector<std::string> hexValues;
     int maxPattern = 1 << bitLength;
 
-    for (int i = 0; i < maxPattern; ++i) {
-        std::string binPattern = std::bitset<64>(i).to_string().substr(64 - bitLength);
+    for (int i = 0; i < maxPattern; i += numPatterns) {
+        std::string combinedPattern;
+        for (int j = 0; j < numPatterns && (i + j) < maxPattern; ++j) {
+            combinedPattern += std::bitset<6>(i + j).to_string();
+        }
         std::stringstream ss;
-        for (size_t j = 0; j < binPattern.size(); j += 4) {
-            std::bitset<4> nibble(binPattern.substr(j, 4));
+        for (size_t k = 0; k < combinedPattern.size(); k += 4) {
+            std::bitset<4> nibble(combinedPattern.substr(k, 4));
             ss << std::hex << nibble.to_ulong();
         }
         hexValues.push_back(ss.str());
@@ -131,7 +134,8 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-f", "--file", "Ripemd160 binary hash file path", false);
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
-    parser.add_argument("-k", "--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
+    parser.add_argument("--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
+    parser.add_argument("--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pattern biner yang digabungkan
 
     parser.enable_help();
 
@@ -234,6 +238,7 @@ int main(int argc, const char* argv[]) {
 
     std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
     int bitLength = parser.exists("bit") ? std::stoi(parser.get<std::string>("bit")) : 0; // Mendapatkan panjang pattern biner
+    int numPatterns = parser.exists("num-patterns") ? std::stoi(parser.get<std::string>("num-patterns")) : 1; // Mendapatkan jumlah pattern biner yang digabungkan
 
     if (!inputFile.empty() || bitLength > 0) {
         std::vector<std::string> hexValues;
@@ -241,7 +246,7 @@ int main(int argc, const char* argv[]) {
         if (!inputFile.empty()) {
             hexValues = readHexValuesFromFile(inputFile);
         } else if (bitLength > 0) {
-            hexValues = convertBinToHex(bitLength);
+            hexValues = convertBinToHex(bitLength, numPatterns);
         }
 
         std::cout << "Total hex values read: " << hexValues.size() << std::endl;
