@@ -5,7 +5,8 @@
 #include <fstream>
 #include <vector>
 #include <string>
-#include <string.h>
+#include <bitset>
+#include <sstream>
 #include <stdexcept>
 #include <cassert>
 #ifndef WIN64
@@ -33,6 +34,27 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
     }
 
     return values;
+}
+
+// Fungsi untuk menggabungkan n pattern biner dan mengubahnya menjadi hex
+std::vector<std::string> convertBinToHex(int bitLength, int numPatterns) {
+    std::vector<std::string> hexValues;
+    int maxPattern = 1 << bitLength;
+
+    for (int i = 0; i < maxPattern; i += numPatterns) {
+        std::string combinedPattern;
+        for (int j = 0; j < numPatterns && (i + j) < maxPattern; ++j) {
+            combinedPattern += std::bitset<6>(i + j).to_string();
+        }
+        std::stringstream ss;
+        for (size_t k = 0; k < combinedPattern.size(); k += 4) {
+            std::bitset<4> nibble(combinedPattern.substr(k, 4));
+            ss << std::hex << nibble.to_ulong();
+        }
+        hexValues.push_back(ss.str());
+    }
+
+    return hexValues;
 }
 
 // ----------------------------------------------------------------------------
@@ -111,7 +133,9 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-l", "--list", "List cuda enabled devices", false);
     parser.add_argument("-f", "--file", "Ripemd160 binary hash file path", false);
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
-    parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen baru
+    parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
+    parser.add_argument("--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
+    parser.add_argument("--numpatterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pattern biner yang digabungkan
 
     parser.enable_help();
 
@@ -213,26 +237,46 @@ int main(int argc, const char* argv[]) {
     }
 
     std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
+    int bitLength = parser.exists("bit") ? std::stoi(parser.get<std::string>("bit")) : 0; // Mendapatkan panjang pattern biner
+    int numPatterns = parser.exists("numpatterns") ? std::stoi(parser.get<std::string>("numpatterns")) : 1; // Mendapatkan jumlah pattern biner yang digabungkan
 
-    if (!inputFile.empty()) {
-        std::vector<std::string> hexValues = readHexValuesFromFile(inputFile);
+    if (!inputFile.empty() || bitLength > 0) {
+        std::vector<std::string> hexValues;
+
+        if (!inputFile.empty()) {
+            hexValues = readHexValuesFromFile(inputFile);
+        } else if (bitLength > 0) {
+            hexValues = convertBinToHex(bitLength, numPatterns);
+        }
+
+        std::cout << "Total hex values read: " << hexValues.size() << std::endl;
 
         for (const auto& hex : hexValues) {
             // Debug print untuk memeriksa nilai hex yang dibaca
             std::cout << "Processing hex value: " << hex << std::endl;
 
             Int startRange, endRange;
-            startRange.SetBase16(hex.c_str());
-            endRange.SetBase16(hex.c_str());
+            try {
+                startRange.SetBase16(hex.c_str());
+                endRange.SetBase16(hex.c_str());
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Error: Invalid hex value: " << hex << std::endl;
+                continue;
+            }
 
             // Debug print untuk memeriksa nilai range yang dihasilkan
             std::cout << "Start range: " << startRange.GetBase16() << std::endl;
             std::cout << "End range: " << endRange.GetBase16() << std::endl;
 
             // Menggunakan KeyHunt untuk memproses rentang ini
-            KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
-            keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
+            try {
+                KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
+                    outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
+                keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
+            } catch (const std::exception& e) {
+                std::cerr << "Error processing hex value " << hex << ": " << e.what() << std::endl;
+                continue;
+            }
         }
     } else {
         if (gridSize.size() == 0) {
