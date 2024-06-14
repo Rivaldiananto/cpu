@@ -131,7 +131,7 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-f", "--file", "Ripemd160 binary hash file path", false);
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
-    parser.add_argument("-Bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
+    parser.add_argument("-b", "--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
 
     parser.enable_help();
 
@@ -233,7 +233,7 @@ int main(int argc, const char* argv[]) {
     }
 
     std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
-    int bitLength = parser.exists("Bit") ? std::stoi(parser.get<std::string>("Bit")) : 0; // Mendapatkan panjang pattern biner
+    int bitLength = parser.exists("bit") ? std::stoi(parser.get<std::string>("bit")) : 0; // Mendapatkan panjang pattern biner
 
     if (!inputFile.empty() || bitLength > 0) {
         std::vector<std::string> hexValues;
