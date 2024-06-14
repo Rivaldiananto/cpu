@@ -37,8 +37,8 @@ std::vector<std::string> readHexValuesFromFile(const std::string& filePath) {
 }
 
 // Fungsi untuk menggabungkan n pattern biner dan mengubahnya menjadi hex
-std::vector<std::string> convertBinToHex(int bitLength, int numPatterns) {
-    std::vector<std::string> hexValues;
+std::vector<std::pair<std::string, std::string>> convertBinToHex(int bitLength, int numPatterns) {
+    std::vector<std::pair<std::string, std::string>> hexRanges;
     int maxPattern = 1 << bitLength;  // Jumlah total pola biner
 
     for (int i = 0; i < maxPattern; i += numPatterns) {
@@ -51,10 +51,11 @@ std::vector<std::string> convertBinToHex(int bitLength, int numPatterns) {
             std::bitset<4> nibble(combinedPattern.substr(k, 4));
             ss << std::hex << nibble.to_ulong();
         }
-        hexValues.push_back(ss.str());
+        std::string hexValue = ss.str();
+        hexRanges.push_back({hexValue, hexValue});
     }
 
-    return hexValues;
+    return hexRanges;
 }
 
 // ----------------------------------------------------------------------------
@@ -241,40 +242,46 @@ int main(int argc, const char* argv[]) {
     int numPatterns = parser.exists("numpatterns") ? std::stoi(parser.get<std::string>("numpatterns")) : 1; // Mendapatkan jumlah pattern biner yang digabungkan
 
     if (!inputFile.empty() || bitLength > 0) {
-        std::vector<std::string> hexValues;
+        std::vector<std::pair<std::string, std::string>> hexRanges;
 
         if (!inputFile.empty()) {
-            hexValues = readHexValuesFromFile(inputFile);
+            auto hexValues = readHexValuesFromFile(inputFile);
+            for (const auto& hex : hexValues) {
+                hexRanges.push_back({hex, hex});
+            }
         } else if (bitLength > 0) {
-            hexValues = convertBinToHex(bitLength, numPatterns);
+            hexRanges = convertBinToHex(bitLength, numPatterns);
         }
 
-        std::cout << "Total hex values read: " << hexValues.size() << std::endl;
+        std::cout << "Total hex values read: " << hexRanges.size() << std::endl;
 
-        for (const auto& hex : hexValues) {
+        for (const auto& range : hexRanges) {
+            std::string startRange = range.first;
+            std::string endRange = range.second;
+
             // Debug print untuk memeriksa nilai hex yang dibaca
-            std::cout << "Processing hex value: " << hex << std::endl;
+            std::cout << "Processing hex value: " << startRange << std::endl;
 
-            Int startRange, endRange;
+            Int startInt, endInt;
             try {
-                startRange.SetBase16(hex.c_str());
-                endRange.SetBase16(hex.c_str());
+                startInt.SetBase16(startRange.c_str());
+                endInt.SetBase16(endRange.c_str());
             } catch (const std::invalid_argument& e) {
-                std::cerr << "Error: Invalid hex value: " << hex << std::endl;
+                std::cerr << "Error: Invalid hex value: " << startRange << std::endl;
                 continue;
             }
 
             // Debug print untuk memeriksa nilai range yang dihasilkan
-            std::cout << "Start range: " << startRange.GetBase16() << std::endl;
-            std::cout << "End range: " << endRange.GetBase16() << std::endl;
+            std::cout << "Start range: " << startInt.GetBase16() << std::endl;
+            std::cout << "End range: " << endInt.GetBase16() << std::endl;
 
             // Menggunakan KeyHunt untuk memproses rentang ini
             try {
                 KeyHunt keyhunt(hash160File, hash160, searchMode, gpuEnable,
-                    outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
+                    outputFile, sse, maxFound, startInt.GetBase16(), endInt.GetBase16(), should_exit);
                 keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
             } catch (const std::exception& e) {
-                std::cerr << "Error processing hex value " << hex << ": " << e.what() << std::endl;
+                std::cerr << "Error processing hex value " << startRange << ": " << e.what() << std::endl;
                 continue;
             }
         }
