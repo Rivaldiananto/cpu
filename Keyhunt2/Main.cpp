@@ -59,7 +59,7 @@ std::string binaryToHex(const std::string &binaryStr) {
 }
 
 // Fungsi untuk menghasilkan rentang nilai biner
-std::vector<std::string> generateBinaryRange(int bitLength, int numPatterns) {
+std::vector<std::pair<std::string, std::string>> generateBinaryRanges(int bitLength, int numPatterns) {
     std::vector<std::string> binaryRange;
     int maxValue = (1 << bitLength) - 1; // 2^bitLength - 1
 
@@ -68,7 +68,7 @@ std::vector<std::string> generateBinaryRange(int bitLength, int numPatterns) {
         binaryRange.push_back(binaryStr);
     }
 
-    std::vector<std::string> combinedRange;
+    std::vector<std::pair<std::string, std::string>> combinedRanges;
     mpz_t totalCombinations;
     mpz_init(totalCombinations);
     mpz_ui_pow_ui(totalCombinations, binaryRange.size(), numPatterns);  // binaryRange.size() ^ numPatterns
@@ -83,13 +83,14 @@ std::vector<std::string> generateBinaryRange(int bitLength, int numPatterns) {
             combined += binaryRange[index];
             combination /= binaryRange.size();
         }
-        combinedRange.push_back(combined);
+        std::string hexValue = binaryToHex(combined);
+        combinedRanges.emplace_back(binaryRange.front(), binaryRange.back());
         mpz_add_ui(i, i, 1);
     }
 
     mpz_clear(totalCombinations);
     mpz_clear(i);
-    return combinedRange;
+    return combinedRanges;
 }
 
 // ----------------------------------------------------------------------------
@@ -170,7 +171,7 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
     parser.add_argument("--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
-    parser.add_argument("-n","--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pola biner
+    parser.add_argument("--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pola biner
 
     parser.enable_help();
 
@@ -276,7 +277,7 @@ int main(int argc, const char* argv[]) {
     int numPatterns = parser.exists("num-patterns") ? std::stoi(parser.get<std::string>("num-patterns")) : 0; // Mendapatkan jumlah pola biner
 
     if (!inputFile.empty() || (bitLength > 0 && numPatterns > 0)) {
-        std::vector<std::string> binaryRange;
+        std::vector<std::pair<std::string, std::string>> binaryRanges;
 
         if (!inputFile.empty()) {
             auto hexValues = readHexValuesFromFile(inputFile);
@@ -285,30 +286,35 @@ int main(int argc, const char* argv[]) {
                 mpz_t num;
                 mpz_init_set_str(num, hex.c_str(), 16);
                 char* bin_cstr = mpz_get_str(NULL, 2, num);
-                binaryRange.push_back(std::string(bin_cstr));
+                binaryRanges.emplace_back(std::string(bin_cstr), hex);
                 free(bin_cstr);
                 mpz_clear(num);
             }
         } else if (bitLength > 0 && numPatterns > 0) {
-            binaryRange = generateBinaryRange(bitLength, numPatterns);
+            binaryRanges = generateBinaryRanges(bitLength, numPatterns);
         }
 
-        std::cout << "Total binary values generated: " << binaryRange.size() << std::endl;
+        std::cout << "Total binary values generated: " << binaryRanges.size() << std::endl;
 
-        for (const auto& bin : binaryRange) {
+        for (const auto& range : binaryRanges) {
+            const auto& binStart = range.first;
+            const auto& binEnd = range.second;
+
             // Debug print untuk memeriksa nilai biner yang dihasilkan
-            std::cout << "Processing binary value: " << bin << std::endl;
+            std::cout << "Processing binary range: " << binStart << " to " << binEnd << std::endl;
 
             // Mengonversi nilai biner ke hex
-            std::string hex = binaryToHex(bin);
-            std::cout << "Converted hex value: " << hex << std::endl;
+            std::string hexStart = binaryToHex(binStart);
+            std::string hexEnd = binaryToHex(binEnd);
+
+            std::cout << "Converted hex range: " << hexStart << " to " << hexEnd << std::endl;
 
             Int startRange, endRange;
             try {
-                startRange.SetBase16(hex.c_str());
-                endRange.SetBase16(hex.c_str());
+                startRange.SetBase16(hexStart.c_str());
+                endRange.SetBase16(hexEnd.c_str());
             } catch (const std::invalid_argument& e) {
-                std::cerr << "Error: Invalid hex value: " << hex << std::endl;
+                std::cerr << "Error: Invalid hex value: " << hexStart << " or " << hexEnd << std::endl;
                 continue;
             }
 
@@ -322,7 +328,7 @@ int main(int argc, const char* argv[]) {
                     outputFile, sse, maxFound, startRange.GetBase16(), endRange.GetBase16(), should_exit);
                 keyhunt.Search(nbCPUThread, gpuId, gridSize, should_exit);
             } catch (const std::exception& e) {
-                std::cerr << "Error processing binary value " << bin << ": " << e.what() << std::endl;
+                std::cerr << "Error processing binary range " << binStart << " to " << binEnd << ": " << e.what() << std::endl;
                 continue;
             }
         }
