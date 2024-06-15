@@ -60,36 +60,13 @@ std::string binaryToHex(const std::string &binaryStr) {
 
 // Fungsi untuk menghasilkan rentang nilai biner
 std::vector<std::pair<std::string, std::string>> generateBinaryRanges(int bitLength, int numPatterns) {
-    std::vector<std::string> binaryRange;
-    int maxValue = (1 << bitLength) - 1; // 2^bitLength - 1
-
-    for (int i = 0; i <= maxValue; ++i) {
-        std::string binaryStr = intToBinary(i, bitLength);
-        binaryRange.push_back(binaryStr);
-    }
-
     std::vector<std::pair<std::string, std::string>> combinedRanges;
-    mpz_t totalCombinations;
-    mpz_init(totalCombinations);
-    mpz_ui_pow_ui(totalCombinations, binaryRange.size(), numPatterns);  // binaryRange.size() ^ numPatterns
+    int totalBits = bitLength * numPatterns;
+    std::string binStart(totalBits, '0');
+    std::string binEnd(totalBits, '1');
 
-    mpz_t i;
-    mpz_init_set_ui(i, 0);
-    while (mpz_cmp(i, totalCombinations) < 0) {
-        std::string combined;
-        unsigned long combination = mpz_get_ui(i);
-        for (int j = 0; j < numPatterns; ++j) {
-            int index = combination % binaryRange.size();
-            combined += binaryRange[index];
-            combination /= binaryRange.size();
-        }
-        std::string hexValue = binaryToHex(combined);
-        combinedRanges.emplace_back(binaryRange.front(), binaryRange.back());
-        mpz_add_ui(i, i, 1);
-    }
+    combinedRanges.emplace_back(binStart, binEnd);
 
-    mpz_clear(totalCombinations);
-    mpz_clear(i);
     return combinedRanges;
 }
 
@@ -171,7 +148,7 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
     parser.add_argument("--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
-    parser.add_argument("-n","--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pola biner
+    parser.add_argument("--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pola biner
 
     parser.enable_help();
 
@@ -319,8 +296,8 @@ int main(int argc, const char* argv[]) {
             }
 
             // Debug print untuk memeriksa nilai range yang dihasilkan
-            std::cout << "Start range: " << startRange.GetBase16() << std::endl;
-            std::cout << "End range: " << endRange.GetBase16() << std::endl;
+            std::cout << "Start range: " << binStart << std::endl;
+            std::cout << "End range: " << binEnd << std::endl;
 
             // Menggunakan KeyHunt untuk memproses rentang ini
             try {
