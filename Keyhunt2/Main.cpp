@@ -59,15 +59,37 @@ std::string binaryToHex(const std::string &binaryStr) {
 }
 
 // Fungsi untuk menghasilkan rentang nilai biner
-std::vector<std::string> generateBinaryRange(int bitLength) {
+std::vector<std::string> generateBinaryRange(int bitLength, int numPatterns) {
     std::vector<std::string> binaryRange;
     int maxValue = (1 << bitLength) - 1; // 2^bitLength - 1
 
     for (int i = 0; i <= maxValue; ++i) {
-        binaryRange.push_back(intToBinary(i, bitLength));
+        std::string binaryStr = intToBinary(i, bitLength);
+        binaryRange.push_back(binaryStr);
     }
 
-    return binaryRange;
+    std::vector<std::string> combinedRange;
+    mpz_t totalCombinations;
+    mpz_init(totalCombinations);
+    mpz_ui_pow_ui(totalCombinations, binaryRange.size(), numPatterns);  // binaryRange.size() ^ numPatterns
+
+    mpz_t i;
+    mpz_init_set_ui(i, 0);
+    while (mpz_cmp(i, totalCombinations) < 0) {
+        std::string combined;
+        unsigned long combination = mpz_get_ui(i);
+        for (int j = 0; j < numPatterns; ++j) {
+            int index = combination % binaryRange.size();
+            combined += binaryRange[index];
+            combination /= binaryRange.size();
+        }
+        combinedRange.push_back(combined);
+        mpz_add_ui(i, i, 1);
+    }
+
+    mpz_clear(totalCombinations);
+    mpz_clear(i);
+    return combinedRange;
 }
 
 // ----------------------------------------------------------------------------
@@ -148,6 +170,7 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
     parser.add_argument("--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
+    parser.add_argument("-n","--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pola biner
 
     parser.enable_help();
 
@@ -250,8 +273,9 @@ int main(int argc, const char* argv[]) {
 
     std::string inputFile = parser.get<std::string>("hexfile"); // Mendapatkan argumen hexfile
     int bitLength = parser.exists("bit") ? std::stoi(parser.get<std::string>("bit")) : 0; // Mendapatkan panjang pattern biner
+    int numPatterns = parser.exists("num-patterns") ? std::stoi(parser.get<std::string>("num-patterns")) : 0; // Mendapatkan jumlah pola biner
 
-    if (!inputFile.empty() || bitLength > 0) {
+    if (!inputFile.empty() || (bitLength > 0 && numPatterns > 0)) {
         std::vector<std::string> binaryRange;
 
         if (!inputFile.empty()) {
@@ -265,8 +289,8 @@ int main(int argc, const char* argv[]) {
                 free(bin_cstr);
                 mpz_clear(num);
             }
-        } else if (bitLength > 0) {
-            binaryRange = generateBinaryRange(bitLength);
+        } else if (bitLength > 0 && numPatterns > 0) {
+            binaryRange = generateBinaryRange(bitLength, numPatterns);
         }
 
         std::cout << "Total binary values generated: " << binaryRange.size() << std::endl;
