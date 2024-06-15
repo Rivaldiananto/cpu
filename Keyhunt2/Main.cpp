@@ -236,7 +236,7 @@ int main(int argc, const char* argv[]) {
 
     if (parser.exists("addr")) {
         address = parser.get<string>("a");
-        if (address.length() < 30 atau address[0] != '1') {
+        if (address.length() < 30 || address[0] != '1') {
             printf("Invalid addr argument, must have P2PKH address only\n");
             exit(-1);
         } else {
@@ -333,7 +333,7 @@ int main(int argc, const char* argv[]) {
             exit(-1);
         }
 
-        if (!tSpecified && nbCPUThread > 1 dan gpuEnable)
+        if (!tSpecified && nbCPUThread > 1 && gpuEnable)
             nbCPUThread -= (int)gpuId.size();
         if (nbCPUThread < 0)
             nbCPUThread = 0;
@@ -343,7 +343,7 @@ int main(int argc, const char* argv[]) {
             printf("KeyHunt-Cuda-2 v" RELEASE "\n");
             printf("\n");
             printf("MODE         : %s\n", searchMode == SEARCH_COMPRESSED ? "COMPRESSED" : (searchMode == SEARCH_UNCOMPRESSED ? "UNCOMPRESSED" : "COMPRESSED & UNCOMPRESSED"));
-            printf("DEVICE       : %s\n", (gpuEnable dan nbCPUThread > 0) ? "CPU & GPU" : ((!gpuEnable dan nbCPUThread > 0) ? "CPU" : "GPU"));
+            printf("DEVICE       : %s\n", (gpuEnable && nbCPUThread > 0) ? "CPU & GPU" : ((!gpuEnable && nbCPUThread > 0) ? "CPU" : "GPU"));
             printf("CPU THREAD   : %d\n", nbCPUThread);
             printf("GPU IDS      : ");
             for (int i = 0; i < gpuId.size(); i++) {
