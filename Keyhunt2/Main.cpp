@@ -171,7 +171,7 @@ int main(int argc, const char* argv[]) {
     parser.add_argument("-a", "--addr", "P2PKH Address (single address mode)", false);
     parser.add_argument("--hexfile", "Input file containing hex values", false); // Argumen untuk hexfile
     parser.add_argument("--bit", "Length of binary pattern", false); // Argumen untuk panjang pattern biner
-    parser.add_argument("--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pola biner
+    parser.add_argument("-n","--num-patterns", "Number of binary patterns to combine", false); // Argumen untuk jumlah pola biner
 
     parser.enable_help();
 
