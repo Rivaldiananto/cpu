@@ -814,178 +814,178 @@ void KeyHunt::SetupRanges(uint32_t totalThreads)
 
 // ----------------------------------------------------------------------------
 
+// KeyHunt.cpp
+...
 void KeyHunt::Search(int nbThread, std::vector<int> gpuId, std::vector<int> gridSize, bool& should_exit, int bitLength, int numPatterns)
 {
+    double t0;
+    double t1;
+    endOfSearch = false;
+    nbCPUThread = nbThread;
+    nbGPUThread = (useGpu ? (int)gpuId.size() : 0);
+    nbFoundKey = 0;
 
-	double t0;
-	double t1;
-	endOfSearch = false;
-	nbCPUThread = nbThread;
-	nbGPUThread = (useGpu ? (int)gpuId.size() : 0);
-	nbFoundKey = 0;
+    // setup ranges
+    SetupRanges(nbCPUThread + nbGPUThread);
 
-	// setup ranges
-	SetupRanges(nbCPUThread + nbGPUThread);
+    memset(counters, 0, sizeof(counters));
 
-	memset(counters, 0, sizeof(counters));
+    if (!useGpu)
+        printf("\n");
 
-	if (!useGpu)
-		printf("\n");
+    TH_PARAM* params = (TH_PARAM*)malloc((nbCPUThread + nbGPUThread) * sizeof(TH_PARAM));
+    memset(params, 0, (nbCPUThread + nbGPUThread) * sizeof(TH_PARAM));
 
-	TH_PARAM* params = (TH_PARAM*)malloc((nbCPUThread + nbGPUThread) * sizeof(TH_PARAM));
-	memset(params, 0, (nbCPUThread + nbGPUThread) * sizeof(TH_PARAM));
+    int rangeShowThreasold = 3;
+    int rangeShowCounter = 0;
 
-	int rangeShowThreasold = 3;
-	int rangeShowCounter = 0;
+    // Launch CPU threads
+    for (int i = 0; i < nbCPUThread; i++) {
+        params[i].obj = this;
+        params[i].threadId = i;
+        params[i].isRunning = true;
 
-	// Launch CPU threads
-	for (int i = 0; i < nbCPUThread; i++) {
-		params[i].obj = this;
-		params[i].threadId = i;
-		params[i].isRunning = true;
+        params[i].rangeStart.Set(&rangeStart);
+        rangeStart.Add(&rangeDiff);
+        params[i].rangeEnd.Set(&rangeStart);
 
-		params[i].rangeStart.Set(&rangeStart);
-		rangeStart.Add(&rangeDiff);
-		params[i].rangeEnd.Set(&rangeStart);
-
-		if (i < rangeShowThreasold) {
-			printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
-		}
-		else if (rangeShowCounter < 1) {
-			printf("             .\n");
-			rangeShowCounter++;
-			if (i + 1 == nbCPUThread) {
-				printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
-			}
-		}
-		else if (i + 1 == nbCPUThread) {
-			printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
-		}
-
-#ifdef WIN64
-		DWORD thread_id;
-		CreateThread(NULL, 0, _FindKey, (void*)(params + i), 0, &thread_id);
-		ghMutex = CreateMutex(NULL, FALSE, NULL);
-#else
-		pthread_t thread_id;
-		pthread_create(&thread_id, NULL, &_FindKey, (void*)(params + i));
-		ghMutex = PTHREAD_MUTEX_INITIALIZER;
-#endif
-	}
-
-	// Launch GPU threads
-	for (int i = 0; i < nbGPUThread; i++) {
-		params[nbCPUThread + i].obj = this;
-		params[nbCPUThread + i].threadId = 0x80L + i;
-		params[nbCPUThread + i].isRunning = true;
-		params[nbCPUThread + i].gpuId = gpuId[i];
-		params[nbCPUThread + i].gridSizeX = gridSize[2 * i];
-		params[nbCPUThread + i].gridSizeY = gridSize[2 * i + 1];
-
-		params[nbCPUThread + i].rangeStart.Set(&rangeStart);
-		rangeStart.Add(&rangeDiff);
-		params[nbCPUThread + i].rangeEnd.Set(&rangeStart);
-
+        if (i < rangeShowThreasold) {
+            printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
+        }
+        else if (rangeShowCounter < 1) {
+            printf("             .\n");
+            rangeShowCounter++;
+            if (i + 1 == nbCPUThread) {
+                printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
+            }
+        }
+        else if (i + 1 == nbCPUThread) {
+            printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
+        }
 
 #ifdef WIN64
-		DWORD thread_id;
-		CreateThread(NULL, 0, _FindKeyGPU, (void*)(params + (nbCPUThread + i)), 0, &thread_id);
+        DWORD thread_id;
+        CreateThread(NULL, 0, _FindKey, (void*)(params + i), 0, &thread_id);
+        ghMutex = CreateMutex(NULL, FALSE, NULL);
 #else
-		pthread_t thread_id;
-		pthread_create(&thread_id, NULL, &_FindKeyGPU, (void*)(params + (nbCPUThread + i)));
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, &_FindKey, (void*)(params + i));
+        ghMutex = PTHREAD_MUTEX_INITIALIZER;
 #endif
-	}
+    }
+
+    // Launch GPU threads
+    for (int i = 0; i < nbGPUThread; i++) {
+        params[nbCPUThread + i].obj = this;
+        params[nbCPUThread + i].threadId = 0x80L + i;
+        params[nbCPUThread + i].isRunning = true;
+        params[nbCPUThread + i].gpuId = gpuId[i];
+        params[nbCPUThread + i].gridSizeX = gridSize[2 * i];
+        params[nbCPUThread + i].gridSizeY = gridSize[2 * i + 1];
+
+        params[nbCPUThread + i].rangeStart.Set(&rangeStart);
+        rangeStart.Add(&rangeDiff);
+        params[nbCPUThread + i].rangeEnd.Set(&rangeStart);
+
+
+#ifdef WIN64
+        DWORD thread_id;
+        CreateThread(NULL, 0, _FindKeyGPU, (void*)(params + (nbCPUThread + i)), 0, &thread_id);
+#else
+        pthread_t thread_id;
+        pthread_create(&thread_id, NULL, &_FindKeyGPU, (void*)(params + (nbCPUThread + i)));
+#endif
+    }
 
 #ifndef WIN64
-	setvbuf(stdout, NULL, _IONBF, 0);
+    setvbuf(stdout, NULL, _IONBF, 0);
 #endif
-	printf("\n");
+    printf("\n");
 
-	uint64_t lastCount = 0;
-	uint64_t gpuCount = 0;
-	uint64_t lastGPUCount = 0;
+    uint64_t lastCount = 0;
+    uint64_t gpuCount = 0;
+    uint64_t lastGPUCount = 0;
 
-	// Key rate smoothing filter
+    // Key rate smoothing filter
 #define FILTER_SIZE 8
-	double lastkeyRate[FILTER_SIZE];
-	double lastGpukeyRate[FILTER_SIZE];
-	uint32_t filterPos = 0;
+    double lastkeyRate[FILTER_SIZE];
+    double lastGpukeyRate[FILTER_SIZE];
+    uint32_t filterPos = 0;
 
-	double keyRate = 0.0;
-	double gpuKeyRate = 0.0;
-	char timeStr[256];
+    double keyRate = 0.0;
+    double gpuKeyRate = 0.0;
+    char timeStr[256];
 
-	memset(lastkeyRate, 0, sizeof(lastkeyRate));
-	memset(lastGpukeyRate, 0, sizeof(lastkeyRate));
+    memset(lastkeyRate, 0, sizeof(lastkeyRate));
+    memset(lastGpukeyRate, 0, sizeof(lastkeyRate));
 
-	// Wait that all threads have started
-	while (!hasStarted(params)) {
-		Timer::SleepMillis(500);
-	}
+    // Wait that all threads have started
+    while (!hasStarted(params)) {
+        Timer::SleepMillis(500);
+    }
 
-	// Reset timer
-	Timer::Init();
-	t0 = Timer::get_tick();
-	startTime = t0;
-	Int p100;
-	Int ICount;
-	p100.SetInt32(100);
+    // Reset timer
+    Timer::Init();
+    t0 = Timer::get_tick();
+    startTime = t0;
+    Int p100;
+    Int ICount;
+    p100.SetInt32(100);
 
-	while (isAlive(params)) {
+    while (isAlive(params)) {
 
-		int delay = 2000;
-		while (isAlive(params) && delay > 0) {
-			Timer::SleepMillis(500);
-			delay -= 500;
-		}
+        int delay = 2000;
+        while (isAlive(params) && delay > 0) {
+            Timer::SleepMillis(500);
+            delay -= 500;
+        }
 
-		gpuCount = getGPUCount();
-		uint64_t count = getCPUCount() + gpuCount;
-		ICount.SetInt64(count);
-		int completedBits = ICount.GetBitLength();
-		ICount.Mult(&p100);
-		ICount.Div(&this->rangeDiff2);
-		int completed = std::stoi(ICount.GetBase10());
+        gpuCount = getGPUCount();
+        uint64_t count = getCPUCount() + gpuCount;
+        ICount.SetInt64(count);
+        int completedBits = ICount.GetBitLength();
+        ICount.Mult(&p100);
+        ICount.Div(&this->rangeDiff2);
+        int completed = std::stoi(ICount.GetBase10());
 
-		t1 = Timer::get_tick();
-		keyRate = (double)(count - lastCount) / (t1 - t0);
-		gpuKeyRate = (double)(gpuCount - lastGPUCount) / (t1 - t0);
-		lastkeyRate[filterPos % FILTER_SIZE] = keyRate;
-		lastGpukeyRate[filterPos % FILTER_SIZE] = gpuKeyRate;
-		filterPos++;
+        t1 = Timer::get_tick();
+        keyRate = (double)(count - lastCount) / (t1 - t0);
+        gpuKeyRate = (double)(gpuCount - lastGPUCount) / (t1 - t0);
+        lastkeyRate[filterPos % FILTER_SIZE] = keyRate;
+        lastGpukeyRate[filterPos % FILTER_SIZE] = gpuKeyRate;
+        filterPos++;
 
-		// KeyRate smoothing
-		double avgKeyRate = 0.0;
-		double avgGpuKeyRate = 0.0;
-		uint32_t nbSample;
-		for (nbSample = 0; (nbSample < FILTER_SIZE) && (nbSample < filterPos); nbSample++) {
-			avgKeyRate += lastkeyRate[nbSample];
-			avgGpuKeyRate += lastGpukeyRate[nbSample];
-		}
-		avgKeyRate /= (double)(nbSample);
-		avgGpuKeyRate /= (double)(nbSample);
+        // KeyRate smoothing
+        double avgKeyRate = 0.0;
+        double avgGpuKeyRate = 0.0;
+        uint32_t nbSample;
+        for (nbSample = 0; (nbSample < FILTER_SIZE) && (nbSample < filterPos); nbSample++) {
+            avgKeyRate += lastkeyRate[nbSample];
+            avgGpuKeyRate += lastGpukeyRate[nbSample];
+        }
+        avgKeyRate /= (double)(nbSample);
+        avgGpuKeyRate /= (double)(nbSample);
 
-		if (isAlive(params)) {
-			memset(timeStr, '\0', 256);
-			printf("\r[%s] [CPU+GPU: %.2f Mk/s] [GPU: %.2f Mk/s] [C: %d%%] [T: %s (%d bit)] [F: %d]  ",
-				toTimeStr(t1, timeStr),
-				avgKeyRate / 1000000.0,
-				avgGpuKeyRate / 1000000.0,
-				completed,
-				formatThousands(count).c_str(),
-				completedBits,
-				nbFoundKey);
-		}
+        if (isAlive(params)) {
+            memset(timeStr, '\0', 256);
+            printf("\r[%s] [CPU+GPU: %.2f Mk/s] [GPU: %.2f Mk/s] [C: %d%%] [T: %s (%d bit)] [F: %d]  ",
+                toTimeStr(t1, timeStr),
+                avgKeyRate / 1000000.0,
+                avgGpuKeyRate / 1000000.0,
+                completed,
+                formatThousands(count).c_str(),
+                completedBits,
+                nbFoundKey);
+        }
 
-		lastCount = count;
-		lastGPUCount = gpuCount;
-		t0 = t1;
-		if (should_exit || /*(completed > 120) ||*/ (addressMode == FILEMODE ? false : (nbFoundKey > 0)))
-			endOfSearch = true;
-	}
+        lastCount = count;
+        lastGPUCount = gpuCount;
+        t0 = t1;
+        if (should_exit || /*(completed > 120) ||*/ (addressMode == FILEMODE ? false : (nbFoundKey > 0)))
+            endOfSearch = true;
+    }
 
-	free(params);
-
+    free(params);
 }
 
 // ----------------------------------------------------------------------------
