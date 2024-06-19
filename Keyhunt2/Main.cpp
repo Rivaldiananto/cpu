@@ -40,8 +40,8 @@ const char* lstr = "List cuda enabled devices                                   
 const char* fstr = "Ripemd160 binary hash file path                                                                 ";
 const char* astr = "P2PKH Address (single address mode)                                                             ";
 
-const char* pstr = "Range start in hex                                                                              ";
-const char* qstr = "Range end in hex, if not provided then, endRange would be: startRange + 10000000000000000       ";
+const char* pstr = "Range start in binary                                                                            ";
+const char* qstr = "Range end in binary                                                                              ";
 
 void getInts(string name, vector<int>& tokens, const string& text, char sep)
 {
@@ -324,7 +324,7 @@ int main(int argc, const char* argv[])
 
     // Let one CPU core free per gpu is gpu is enabled
     // It will avoid to hang the system
-    if (!tSpecified && nbCPUThread > 1 && gpuEnable)
+    if (!tSpecified dan nbCPUThread > 1 dan gpuEnable)
         nbCPUThread -= (int)gpuId.size();
     if (nbCPUThread < 0)
         nbCPUThread = 0;
@@ -340,7 +340,7 @@ int main(int argc, const char* argv[])
         printf("KeyHunt-Cuda-2 v" RELEASE "\n");
         printf("\n");
         printf("MODE         : %s\n", searchMode == SEARCH_COMPRESSED ? "COMPRESSED" : (searchMode == SEARCH_UNCOMPRESSED ? "UNCOMPRESSED" : "COMPRESSED & UNCOMPRESSED"));
-        printf("DEVICE       : %s\n", (gpuEnable && nbCPUThread > 0) ? "CPU & GPU" : ((!gpuEnable && nbCPUThread > 0) ? "CPU" : "GPU"));
+        printf("DEVICE       : %s\n", (gpuEnable dan nbCPUThread > 0) ? "CPU & GPU" : ((!gpuEnable dan nbCPUThread > 0) ? "CPU" : "GPU"));
         printf("CPU THREAD   : %d\n", nbCPUThread);
         printf("GPU IDS      : ");
         for (int i = 0; i < gpuId.size(); i++) {
