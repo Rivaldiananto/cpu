@@ -2,7 +2,7 @@
 #include "KeyHunt.h"
 #include "Base58.h"
 #include "ArgParse.h"
-#include "binToHex.h" 
+#include "binToHex.h" // Tambahkan header ini
 #include <fstream>
 #include <string>
 #include <string.h>
@@ -18,24 +18,6 @@
 using namespace std;
 using namespace argparse;
 bool should_exit = false;
-
-// Function to convert binary string to hexadecimal string
-string binToHex(const string& bin) {
-    static const char* const lut = "0123456789ABCDEF";
-    size_t len = bin.length();
-
-    if (len % 4 != 0) throw invalid_argument("Binary string length must be a multiple of 4");
-
-    string hex;
-    hex.reserve(len / 4);
-
-    for (size_t i = 0; i < len; i += 4) {
-        int nibble = (bin[i] - '0') << 3 | (bin[i + 1] - '0') << 2 | (bin[i + 2] - '0') << 1 | (bin[i + 3] - '0');
-        hex.push_back(lut[nibble]);
-    }
-
-    return hex;
-}
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -61,9 +43,8 @@ const char* astr = "P2PKH Address (single address mode)                         
 const char* pstr = "Range start in hex                                                                              ";
 const char* qstr = "Range end in hex, if not provided then, endRange would be: startRange + 10000000000000000       ";
 
-// New binary range arguments
-const char* bBinStr = "Binary start range";
-const char* eBinStr = "Binary end range";
+const char* bsstr = "Range start in binary                                                                           ";
+const char* bestr = "Range end in binary                                                                             ";
 
 // ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
@@ -143,6 +124,8 @@ int main(int argc, const char* argv[])
 	//bool paranoiacSeed = false;
 	string rangeStart = "";
 	string rangeEnd = "";
+	string binRangeStart = "";
+	string binRangeEnd = "";
 	hash160.clear();
 
 	ArgumentParser parser("KeyHunt-Cuda-2", "Hunt for Bitcoin private keys.");
@@ -167,9 +150,8 @@ int main(int argc, const char* argv[])
 	parser.add_argument("-s", "--start", pstr, false);
 	parser.add_argument("-e", "--end", qstr, false);
 
-	// New binary range arguments
-	parser.add_argument("-bs", "--bstart", bBinStr, false);
-	parser.add_argument("-be", "--bend", eBinStr, false);
+	parser.add_argument("--bs", "--binstart", bsstr, false);
+	parser.add_argument("--be", "--binend", bestr, false);
 
 	parser.enable_help();
 
@@ -300,17 +282,14 @@ int main(int argc, const char* argv[])
 		rangeEnd = parser.get<string>("e");
 	}
 
-	// New logic for handling binary ranges
-	if (parser.exists("bstart") && parser.exists("bend")) {
-		string bstart = parser.get<string>("bs");
-		string bend = parser.get<string>("be");
+	if (parser.exists("binstart")) {
+		binRangeStart = parser.get<string>("bs");
+		rangeStart = binToHex(binRangeStart);
+	}
 
-		// Convert binary ranges to hexadecimal
-		rangeStart = binToHex(bstart);
-		rangeEnd = binToHex(bend);
-
-		cout << "Start range in hex: " << rangeStart << endl;
-		cout << "End range in hex: " << rangeEnd << endl;
+	if (parser.exists("binend")) {
+		binRangeEnd = parser.get<string>("be");
+		rangeEnd = binToHex(binRangeEnd);
 	}
 
 	if (gridSize.size() == 0) {
@@ -421,4 +400,3 @@ int main(int argc, const char* argv[])
 	return 0;
 #endif
 }
-
