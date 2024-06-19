@@ -38,7 +38,7 @@ NVCC       = $(CUDA)/bin/nvcc
 ccap       = $(shell echo $(CCAP) | tr -d '.')
 
 # Tambahkan jalur pencarian include
-INCLUDES   = -I. -I$(CUDA)/include -Iinclude
+INCLUDES   = -I. -I$(CUDA)/include -Iinclude -I../include  # Menambahkan ../include untuk mencari di direktori parent
 
 ifdef gpu
 ifdef debug
