@@ -37,23 +37,20 @@ NVCC       = $(CUDA)/bin/nvcc
 # nvcc requires joint notation w/o dot, i.e. "5.2" -> "52"
 ccap       = $(shell echo $(CCAP) | tr -d '.')
 
-# Tambahkan jalur pencarian include
-INCLUDES   = -I. -I$(CUDA)/include -Iinclude -I../include  # Menambahkan ../include untuk mencari di direktori parent
-
 ifdef gpu
 ifdef debug
-CXXFLAGS   = -DWITHGPU -m64  -mssse3 -Wno-write-strings -g $(INCLUDES)
+CXXFLAGS   = -DWITHGPU -m64  -mssse3 -Wno-write-strings -g -I. -I$(CUDA)/include
 else
-CXXFLAGS   =  -DWITHGPU -m64 -mssse3 -Wno-write-strings -O2 $(INCLUDES)
+CXXFLAGS   =  -DWITHGPU -m64 -mssse3 -Wno-write-strings -O2 -I. -I$(CUDA)/include
 endif
-LFLAGS     = -lpthread -L$(CUDA)/lib64 -lcudart -lgmp
+LFLAGS     = -lpthread -L$(CUDA)/lib64 -lcudart
 else
 ifdef debug
-CXXFLAGS   = -m64 -mssse3 -Wno-write-strings -g $(INCLUDES)
+CXXFLAGS   = -m64 -mssse3 -Wno-write-strings -g -I. -I$(CUDA)/include
 else
-CXXFLAGS   =  -m64 -mssse3 -Wno-write-strings -O2 $(INCLUDES)
+CXXFLAGS   =  -m64 -mssse3 -Wno-write-strings -O2 -I. -I$(CUDA)/include
 endif
-LFLAGS     = -lpthread -lgmp
+LFLAGS     = -lpthread
 endif
 
 
@@ -94,3 +91,4 @@ clean:
 	@rm -f obj/*.o
 	@rm -f obj/GPU/*.o
 	@rm -f obj/hash/*.o
+
