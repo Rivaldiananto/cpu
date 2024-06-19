@@ -2,6 +2,7 @@
 #include "KeyHunt.h"
 #include "Base58.h"
 #include "ArgParse.h"
+#include "binToHex.h" 
 #include <fstream>
 #include <string>
 #include <string.h>
