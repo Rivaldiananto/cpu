@@ -14,35 +14,27 @@
 #include <pthread.h>
 #endif
 
-#include <bitset>
-#include <sstream>
-
 using namespace std;
 
 Point Gn[CPU_GRP_SIZE / 2];
 Point _2Gn;
 
-// Fungsi untuk mengonversi biner ke heksadesimal
-std::string binToHex(const std::string& bin) {
-    std::stringstream ss;
-    ss << std::hex << std::stoull(bin, nullptr, 2);
-    std::string result = ss.str();
-    if (result.size() < 2) {
-        result = "0" + result;
-    }
-    return result;
-}
+// Function to convert binary string to hexadecimal string
+string binToHex(const string& bin) {
+    static const char* const lut = "0123456789ABCDEF";
+    size_t len = bin.length();
 
-// Fungsi untuk menghasilkan semua nilai heksadesimal dalam rentang biner
-void generateHexRange(const std::string& startBin, const std::string& endBin, vector<string>& hexRange) {
-    unsigned long long start = std::stoull(startBin, nullptr, 2);
-    unsigned long long end = std::stoull(endBin, nullptr, 2);
-    
-    for (unsigned long long i = start; i <= end; ++i) {
-        std::bitset<6> bin(i); // Sesuaikan ukuran bit sesuai kebutuhan
-        std::string hexValue = binToHex(bin.to_string());
-        hexRange.push_back(hexValue);
+    if (len % 4 != 0) throw invalid_argument("Binary string length must be a multiple of 4");
+
+    string hex;
+    hex.reserve(len / 4);
+
+    for (size_t i = 0; i < len; i += 4) {
+        int nibble = (bin[i] - '0') << 3 | (bin[i + 1] - '0') << 2 | (bin[i + 2] - '0') << 1 | (bin[i + 3] - '0');
+        hex.push_back(lut[nibble]);
     }
+
+    return hex;
 }
 
 // ----------------------------------------------------------------------------
@@ -62,16 +54,10 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
     this->maxFound = maxFound;
     this->searchType = P2PKH;
 
-    // Periksa apakah rangeStart dan rangeEnd adalah biner
-    if (rangeStart.length() == 6 && rangeEnd.length() == 6 && rangeStart.find_first_not_of("01") == std::string::npos && rangeEnd.find_first_not_of("01") == std::string::npos) {
-        // Menghasilkan rentang heksadesimal dari rentang biner
-        vector<string> hexRange;
-        generateHexRange(rangeStart, rangeEnd, hexRange);
-
-        if (!hexRange.empty()) {
-            this->rangeStart.SetBase16(hexRange.front().c_str());
-            this->rangeEnd.SetBase16(hexRange.back().c_str());
-        }
+    // Check if the rangeStart and rangeEnd are in binary format (starts with "0b")
+    if (rangeStart.substr(0, 2) == "0b" && rangeEnd.substr(0, 2) == "0b") {
+        this->rangeStart.SetBase16(binToHex(rangeStart.substr(2)).c_str());
+        this->rangeEnd.SetBase16(binToHex(rangeEnd.substr(2)).c_str());
     } else {
         this->rangeStart.SetBase16(rangeStart.c_str());
         if (rangeEnd.length() <= 0) {
@@ -99,7 +85,6 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
     secp->Init();
 
     if (this->addressMode == FILEMODE) {
-
         // load address file
         uint8_t buf[20];
         FILE* wfd;
@@ -186,7 +171,6 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
     printf("Global start : %064s (%d bit)\n", this->rangeStart.GetBase16().c_str(), this->rangeStart.GetBitLength());
     printf("Global end   : %064s (%d bit)\n", this->rangeEnd.GetBase16().c_str(), this->rangeEnd.GetBitLength());
     printf("Global range : %064s (%d bit)\n", this->rangeDiff2.GetBase16().c_str(), this->rangeDiff2.GetBitLength());
-
 }
 
 KeyHunt::~KeyHunt()
@@ -235,22 +219,25 @@ void KeyHunt::output(string addr, string pAddr, string pAddrHex)
     fprintf(stdout, "\n==================================================================\n");
     fprintf(stdout, "PubAddress: %s\n", addr.c_str());
 
-    switch (searchType) {
-    case P2PKH:
-        fprintf(f, "Priv (WIF): p2pkh:%s\n", pAddr.c_str());
-        fprintf(stdout, "Priv (WIF): p2pkh:%s\n", pAddr.c_str());
-        break;
-    case P2SH:
-        fprintf(f, "Priv (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
-        fprintf(stdout, "Priv (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
-        break;
-    case BECH32:
-        fprintf(f, "Priv (WIF): p2wpkh:%s\n", pAddr.c_str());
-        fprintf(stdout, "Priv (WIF): p2wpkh:%s\n", pAddr.c_str());
-        break;
+    {
+        switch (searchType) {
+        case P2PKH:
+            fprintf(f, "Priv (WIF): p2pkh:%s\n", pAddr.c_str());
+            fprintf(stdout, "Priv (WIF): p2pkh:%s\n", pAddr.c_str());
+            break;
+        case P2SH:
+            fprintf(f, "Priv (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
+            fprintf(stdout, "Priv (WIF): p2wpkh-p2sh:%s\n", pAddr.c_str());
+            break;
+        case BECH32:
+            fprintf(f, "Priv (WIF): p2wpkh:%s\n", pAddr.c_str());
+            fprintf(stdout, "Priv (WIF): p2wpkh:%s\n", pAddr.c_str());
+            break;
+        }
+        fprintf(f, "Priv (HEX): 0x%s\n", pAddrHex.c_str());
+        fprintf(stdout, "Priv (HEX): 0x%s\n", pAddrHex.c_str());
+
     }
-    fprintf(f, "Priv (HEX): 0x%s\n", pAddrHex.c_str());
-    fprintf(stdout, "Priv (HEX): 0x%s\n", pAddrHex.c_str());
 
     fprintf(f, "==================================================================\n");
     fprintf(stdout, "==================================================================\n");
@@ -665,6 +652,7 @@ void KeyHunt::getGPUStartingKeys(int thId, Int & tRangeStart, Int & tRangeEnd, i
         keys[i].Set(&tRangeStart2);
         tRangeEnd2.Set(&tRangeStart2);
         tRangeEnd2.Add(&tRangeDiff);
+
 
         if (i < rangeShowThreasold) {
             printf("GPU %d Thread %06d: %064s : %064s\n", (thId - 0x80L), i, tRangeStart2.GetBase16().c_str(), tRangeEnd2.GetBase16().c_str());
