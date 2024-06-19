@@ -86,6 +86,7 @@ $(OBJDIR)/GPU: $(OBJDIR)
 $(OBJDIR)/hash: $(OBJDIR)
 	cd $(OBJDIR) &&	mkdir -p hash
 
+
 clean:
 	@echo Cleaning...
 	@rm -f obj/*.o
