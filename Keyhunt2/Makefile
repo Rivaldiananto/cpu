@@ -37,18 +37,21 @@ NVCC       = $(CUDA)/bin/nvcc
 # nvcc requires joint notation w/o dot, i.e. "5.2" -> "52"
 ccap       = $(shell echo $(CCAP) | tr -d '.')
 
+# Tambahkan jalur pencarian include
+INCLUDES   = -I. -I$(CUDA)/include -Iinclude
+
 ifdef gpu
 ifdef debug
-CXXFLAGS   = -DWITHGPU -m64  -mssse3 -Wno-write-strings -g -I. -I$(CUDA)/include
+CXXFLAGS   = -DWITHGPU -m64  -mssse3 -Wno-write-strings -g $(INCLUDES)
 else
-CXXFLAGS   =  -DWITHGPU -m64 -mssse3 -Wno-write-strings -O2 -I. -I$(CUDA)/include
+CXXFLAGS   =  -DWITHGPU -m64 -mssse3 -Wno-write-strings -O2 $(INCLUDES)
 endif
 LFLAGS     = -lpthread -L$(CUDA)/lib64 -lcudart -lgmp
 else
 ifdef debug
-CXXFLAGS   = -m64 -mssse3 -Wno-write-strings -g -I. -I$(CUDA)/include
+CXXFLAGS   = -m64 -mssse3 -Wno-write-strings -g $(INCLUDES)
 else
-CXXFLAGS   =  -m64 -mssse3 -Wno-write-strings -O2 -I. -I$(CUDA)/include
+CXXFLAGS   =  -m64 -mssse3 -Wno-write-strings -O2 $(INCLUDES)
 endif
 LFLAGS     = -lpthread -lgmp
 endif
@@ -85,7 +88,6 @@ $(OBJDIR)/GPU: $(OBJDIR)
 
 $(OBJDIR)/hash: $(OBJDIR)
 	cd $(OBJDIR) &&	mkdir -p hash
-
 
 clean:
 	@echo Cleaning...
