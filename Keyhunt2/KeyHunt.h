@@ -6,7 +6,7 @@
 #include <cstdint>
 #include "Int.h"
 #include "Point.h"
-#include "Secp256K1.h"
+#include "SECP256K1.h"
 #include "Bloom.h"
 
 #define CPU_GRP_SIZE 1024
