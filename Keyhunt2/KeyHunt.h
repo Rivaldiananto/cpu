@@ -32,7 +32,6 @@ typedef struct {
 
 } TH_PARAM;
 
-
 class KeyHunt
 {
 
