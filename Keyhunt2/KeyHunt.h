@@ -31,7 +31,6 @@ typedef struct {
 
 } TH_PARAM;
 
-
 class KeyHunt
 {
 
@@ -69,6 +68,9 @@ private:
 	bool MatchHash160(uint32_t* _h);
 	std::string formatThousands(uint64_t x);
 	char* toTimeStr(int sec, char* timeStr);
+
+	// New function to convert binary to hexadecimal
+	std::string binToHex(const std::string& bin);
 
 	Secp256K1* secp;
 	Bloom* bloom;
