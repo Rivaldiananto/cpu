@@ -10,6 +10,7 @@
 #include <cmath>
 #include <algorithm>
 #include <iostream>
+#include "binToHex.h" 
 #ifndef WIN64
 #include <pthread.h>
 #endif
