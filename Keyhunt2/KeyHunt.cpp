@@ -6,7 +6,7 @@
 #include "IntGroup.h"
 #include "Timer.h"
 #include "hash/ripemd160.h"
-#include <sstream> // Tambahkan ini untuk std::stringstream
+#include <sstream>
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -25,6 +25,33 @@ std::string binaryToHex(const std::string& binaryStr) {
     std::stringstream ss;
     ss << std::hex << std::stoull(binaryStr, nullptr, 2);
     return ss.str();
+}
+
+// Fungsi untuk mengonversi string hexadecimal ke string biner
+std::string hexToBinary(const std::string& hex) {
+    std::string binaryStr = "";
+    for (char const &c : hex) {
+        switch(c) {
+            case '0': binaryStr.append("0000"); break;
+            case '1': binaryStr.append("0001"); break;
+            case '2': binaryStr.append("0010"); break;
+            case '3': binaryStr.append("0011"); break;
+            case '4': binaryStr.append("0100"); break;
+            case '5': binaryStr.append("0101"); break;
+            case '6': binaryStr.append("0110"); break;
+            case '7': binaryStr.append("0111"); break;
+            case '8': binaryStr.append("1000"); break;
+            case '9': binaryStr.append("1001"); break;
+            case 'A': case 'a': binaryStr.append("1010"); break;
+            case 'B': case 'b': binaryStr.append("1011"); break;
+            case 'C': case 'c': binaryStr.append("1100"); break;
+            case 'D': case 'd': binaryStr.append("1101"); break;
+            case 'E': case 'e': binaryStr.append("1110"); break;
+            case 'F': case 'f': binaryStr.append("1111"); break;
+            default: throw std::invalid_argument("Invalid hexadecimal character");
+        }
+    }
+    return binaryStr;
 }
 
 KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char>& addressHash,
@@ -151,9 +178,9 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
 	ctimeBuff = ctime(&now);
 	printf("Start Time   : %s", ctimeBuff);
 
-	printf("Global start : %s (%d bit)\n", this->rangeStart.GetBase16().c_str(), this->rangeStart.GetBitLength()); // Perbaiki format di sini
-	printf("Global end   : %s (%d bit)\n", this->rangeEnd.GetBase16().c_str(), this->rangeEnd.GetBitLength()); // Perbaiki format di sini
-	printf("Global range : %s (%d bit)\n", this->rangeDiff2.GetBase16().c_str(), this->rangeDiff2.GetBitLength()); // Perbaiki format di sini
+	printf("Global start : %s (%d bit)\n", hexToBinary(this->rangeStart.GetBase16()).c_str(), this->rangeStart.GetBitLength()); // Perbaiki format di sini
+	printf("Global end   : %s (%d bit)\n", hexToBinary(this->rangeEnd.GetBase16()).c_str(), this->rangeEnd.GetBitLength()); // Perbaiki format di sini
+	printf("Global range : %s (%d bit)\n", hexToBinary(this->rangeDiff2.GetBase16()).c_str(), this->rangeDiff2.GetBitLength()); // Perbaiki format di sini
 
 }
 
@@ -228,9 +255,6 @@ void KeyHunt::output(string addr, string pAddr, string pAddrHex)
 
 	fprintf(f, "==================================================================\n");
 	fprintf(stdout, "==================================================================\n");
-
-	if (needToClose)
-		fclose(f);
 
 #ifdef WIN64
 	ReleaseMutex(ghMutex);
@@ -632,6 +656,10 @@ void KeyHunt::getGPUStartingKeys(int thId, Int & tRangeStart, Int & tRangeEnd, i
 	tThreads.SetInt32(nbThread);
 	tRangeDiff.Set(&tRangeEnd);
 	tRangeDiff.Sub(&tRangeStart);
+	if (tThreads.IsZero()) {
+		printf("Error: Number of threads is zero, cannot divide range.\n");
+		exit(1);
+	}
 	tRangeDiff.Div(&tThreads);
 
 	int rangeShowThreasold = 3;
@@ -777,7 +805,7 @@ bool KeyHunt::hasStarted(TH_PARAM * p)
 
 	bool hasStarted = true;
 	int total = nbCPUThread + nbGPUThread;
-	for (int i = 0; total; i++)
+	for (int i = 0; i < total; i++)
 		hasStarted = hasStarted && p[i].hasStarted;
 
 	return hasStarted;
@@ -814,6 +842,10 @@ void KeyHunt::SetupRanges(uint32_t totalThreads)
 	threads.SetInt32(totalThreads);
 	rangeDiff.Set(&rangeEnd);
 	rangeDiff.Sub(&rangeStart);
+	if (threads.IsZero()) {
+		printf("Error: Number of threads is zero, cannot divide range.\n");
+		exit(1);
+	}
 	rangeDiff.Div(&threads);
 }
 
