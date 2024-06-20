@@ -6,6 +6,7 @@
 #include "IntGroup.h"
 #include "Timer.h"
 #include "hash/ripemd160.h"
+#include <sstream> // Tambahkan ini untuk std::stringstream
 #include <cstring>
 #include <cmath>
 #include <algorithm>
@@ -101,7 +102,7 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
 				bloom->add(buf, 20);
 				memcpy(DATA + (i * 20), buf, 20);
 				if (i % percent == 0) {
-					printf("\rLoading      : %llu %%", (i / percent));
+					printf("\rLoading      : %lu %%", (i / percent)); // Perbaiki format di sini
 					fflush(stdout);
 				}
 			}
@@ -150,9 +151,9 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
 	ctimeBuff = ctime(&now);
 	printf("Start Time   : %s", ctimeBuff);
 
-	printf("Global start : %064s (%d bit)\n", this->rangeStart.GetBase16().c_str(), this->rangeStart.GetBitLength());
-	printf("Global end   : %064s (%d bit)\n", this->rangeEnd.GetBase16().c_str(), this->rangeEnd.GetBitLength());
-	printf("Global range : %064s (%d bit)\n", this->rangeDiff2.GetBase16().c_str(), this->rangeDiff2.GetBitLength());
+	printf("Global start : %s (%d bit)\n", this->rangeStart.GetBase16().c_str(), this->rangeStart.GetBitLength()); // Perbaiki format di sini
+	printf("Global end   : %s (%d bit)\n", this->rangeEnd.GetBase16().c_str(), this->rangeEnd.GetBitLength()); // Perbaiki format di sini
+	printf("Global range : %s (%d bit)\n", this->rangeDiff2.GetBase16().c_str(), this->rangeDiff2.GetBitLength()); // Perbaiki format di sini
 
 }
 
@@ -644,17 +645,17 @@ void KeyHunt::getGPUStartingKeys(int thId, Int & tRangeStart, Int & tRangeEnd, i
 
 
 		if (i < rangeShowThreasold) {
-			printf("GPU %d Thread %06d: %064s : %064s\n", (thId - 0x80L), i, tRangeStart2.GetBase16().c_str(), tRangeEnd2.GetBase16().c_str());
+			printf("GPU %ld Thread %06d: %s : %s\n", (thId - 0x80L), i, tRangeStart2.GetBase16().c_str(), tRangeEnd2.GetBase16().c_str()); // Perbaiki format di sini
 		}
 		else if (rangeShowCounter < 1) {
 			printf("                   .\n");
 			rangeShowCounter++;
 			if (i + 1 == nbThread) {
-				printf("GPU %d Thread %06d: %064s : %064s\n", (thId - 0x80L), i, tRangeStart2.GetBase16().c_str(), tRangeEnd2.GetBase16().c_str());
+				printf("GPU %ld Thread %06d: %s : %s\n", (thId - 0x80L), i, tRangeStart2.GetBase16().c_str(), tRangeEnd2.GetBase16().c_str()); // Perbaiki format di sini
 			}
 		}
 		else if (i + 1 == nbThread) {
-			printf("GPU %d Thread %06d: %064s : %064s\n", (thId - 0x80L), i, tRangeStart2.GetBase16().c_str(), tRangeEnd2.GetBase16().c_str());
+			printf("GPU %ld Thread %06d: %s : %s\n", (thId - 0x80L), i, tRangeStart2.GetBase16().c_str(), tRangeEnd2.GetBase16().c_str()); // Perbaiki format di sini
 		}
 
 		tRangeStart2.Add(&tRangeDiff);
@@ -776,7 +777,7 @@ bool KeyHunt::hasStarted(TH_PARAM * p)
 
 	bool hasStarted = true;
 	int total = nbCPUThread + nbGPUThread;
-	for (int i = 0; i < total; i++)
+	for (int i = 0; total; i++)
 		hasStarted = hasStarted && p[i].hasStarted;
 
 	return hasStarted;
@@ -853,17 +854,17 @@ void KeyHunt::Search(int nbThread, std::vector<int> gpuId, std::vector<int> grid
 		params[i].rangeEnd.Set(&rangeStart);
 
 		if (i < rangeShowThreasold) {
-			printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
+			printf("CPU Thread %02d: %s : %s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str()); // Perbaiki format di sini
 		}
 		else if (rangeShowCounter < 1) {
 			printf("             .\n");
 			rangeShowCounter++;
 			if (i + 1 == nbCPUThread) {
-				printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
+				printf("CPU Thread %02d: %s : %s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str()); // Perbaiki format di sini
 			}
 		}
 		else if (i + 1 == nbCPUThread) {
-			printf("CPU Thread %02d: %064s : %064s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str());
+			printf("CPU Thread %02d: %s : %s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str()); // Perbaiki format di sini
 		}
 
 #ifdef WIN64
@@ -1061,7 +1062,7 @@ std::string KeyHunt::formatThousands(uint64_t x)
 {
 	char buf[32] = "";
 
-	sprintf(buf, "%llu", x);
+	sprintf(buf, "%lu", x); // Perbaiki format di sini
 
 	std::string s(buf);
 
@@ -1097,4 +1098,3 @@ char* KeyHunt::toTimeStr(int sec, char* timeStr)
 	sprintf(timeStr, "%0*d:%0*d:%0*d", 2, h, 2, m, 2, s);
 	return (char*)timeStr;
 }
-
