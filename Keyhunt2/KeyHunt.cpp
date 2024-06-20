@@ -256,6 +256,9 @@ void KeyHunt::output(string addr, string pAddr, string pAddrHex)
 	fprintf(f, "==================================================================\n");
 	fprintf(stdout, "==================================================================\n");
 
+	if (needToClose)
+		fclose(f);
+
 #ifdef WIN64
 	ReleaseMutex(ghMutex);
 #else
@@ -749,7 +752,7 @@ void KeyHunt::FindKeyGPU(TH_PARAM * ph)
 		else {
 			ok = g->Launch2(found, false);
 		}
-		for (int i = 0; i < (int)found.size() && !endOfSearch; i++) {
+		for (int i = 0; (int)found.size() && !endOfSearch; i++) {
 
 			ITEM it = found[i];
 			//checkAddr(it.hash, keys[it.thId], it.incr, it.endo, it.mode);
@@ -818,7 +821,7 @@ uint64_t KeyHunt::getGPUCount()
 {
 
 	uint64_t count = 0;
-	for (int i = 0; i < nbGPUThread; i++)
+	for (int i = 0; nbGPUThread; i++)
 		count += counters[0x80L + i];
 	return count;
 
@@ -886,17 +889,17 @@ void KeyHunt::Search(int nbThread, std::vector<int> gpuId, std::vector<int> grid
 		params[i].rangeEnd.Set(&rangeStart);
 
 		if (i < rangeShowThreasold) {
-			printf("CPU Thread %02d: %s : %s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str()); // Perbaiki format di sini
+			printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str()); // Perbaiki format di sini
 		}
 		else if (rangeShowCounter < 1) {
 			printf("             .\n");
 			rangeShowCounter++;
 			if (i + 1 == nbCPUThread) {
-				printf("CPU Thread %02d: %s : %s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str()); // Perbaiki format di sini
+				printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str()); // Perbaiki format di sini
 			}
 		}
 		else if (i + 1 == nbCPUThread) {
-			printf("CPU Thread %02d: %s : %s\n", i, params[i].rangeStart.GetBase16().c_str(), params[i].rangeEnd.GetBase16().c_str()); // Perbaiki format di sini
+			printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str()); // Perbaiki format di sini
 		}
 
 #ifdef WIN64
