@@ -6,7 +6,6 @@
 #include "SECP256k1.h"
 #include "Bloom.h"
 #include "GPU/GPUEngine.h"
-#include "binToHex.h" // Tambahkan header ini
 #ifdef WIN64
 #include <Windows.h>
 #endif
@@ -31,6 +30,7 @@ typedef struct {
 	//Int rangeDiff;
 
 } TH_PARAM;
+
 
 class KeyHunt
 {
