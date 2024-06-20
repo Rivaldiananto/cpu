@@ -18,7 +18,7 @@ OBJET = $(addprefix $(OBJDIR)/, \
         IntMod.o Point.o SECP256K1.o KeyHunt.o GPU/GPUGenerate.o \
         hash/ripemd160.o hash/sha256.o hash/sha512.o \
         hash/ripemd160_sse.o hash/sha256_sse.o \
-        GPU/GPUEngine.o Bech32.o)
+        GPU/GPUEngine.o Bech32.o binToHex.o)
 
 else
 
@@ -26,7 +26,7 @@ OBJET = $(addprefix $(OBJDIR)/, \
         Base58.o IntGroup.o Main.o Bloom.o Random.o Timer.o Int.o \
         IntMod.o Point.o SECP256K1.o KeyHunt.o GPU/GPUGenerate.o \
         hash/ripemd160.o hash/sha256.o hash/sha512.o \
-        hash/ripemd160_sse.o hash/sha256_sse.o Bech32.o)
+        hash/ripemd160_sse.o hash/sha256_sse.o Bech32.o binToHex.o)
 
 endif
 
@@ -53,42 +53,38 @@ endif
 LFLAGS     = -lpthread
 endif
 
-
 #--------------------------------------------------------------------
 
 ifdef gpu
 ifdef debug
 $(OBJDIR)/GPU/GPUEngine.o: GPU/GPUEngine.cu
-	$(NVCC) -G -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -g -I$(CUDA)/include -gencode=arch=compute_$(ccap),code=sm_$(ccap) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
+    $(NVCC) -G -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -g -I$(CUDA)/include -gencode=arch=compute_$(ccap),code=sm_$(ccap) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
 else
 $(OBJDIR)/GPU/GPUEngine.o: GPU/GPUEngine.cu
-	$(NVCC) -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -O2 -I$(CUDA)/include -gencode=arch=compute_$(ccap),code=sm_$(ccap) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
+    $(NVCC) -maxrregcount=0 --ptxas-options=-v --compile --compiler-options -fPIC -ccbin $(CXXCUDA) -m64 -O2 -I$(CUDA)/include -gencode=arch=compute_$(ccap),code=sm_$(ccap) -o $(OBJDIR)/GPU/GPUEngine.o -c GPU/GPUEngine.cu
 endif
 endif
 
 $(OBJDIR)/%.o : %.cpp
-	$(CXX) $(CXXFLAGS) -o $@ -c $<
+    $(CXX) $(CXXFLAGS) -o $@ -c $<
 
 all: KeyHunt
 
 KeyHunt: $(OBJET)
-	@echo Making KeyHunt...
-	$(CXX) $(OBJET) $(LFLAGS) -o KeyHunt
-
-$(OBJET): | $(OBJDIR) $(OBJDIR)/GPU $(OBJDIR)/hash
+    @echo Making KeyHunt...
+    $(CXX) $(OBJET) $(LFLAGS) -o KeyHunt
 
 $(OBJDIR):
-	mkdir -p $(OBJDIR)
+    mkdir -p $(OBJDIR)
 
 $(OBJDIR)/GPU: $(OBJDIR)
-	cd $(OBJDIR) &&	mkdir -p GPU
+    cd $(OBJDIR) && mkdir -p GPU
 
 $(OBJDIR)/hash: $(OBJDIR)
-	cd $(OBJDIR) &&	mkdir -p hash
+    cd $(OBJDIR) && mkdir -p hash
 
 clean:
-	@echo Cleaning...
-	@rm -f obj/*.o
-	@rm -f obj/GPU/*.o
-	@rm -f obj/hash/*.o
-
+    @echo Cleaning...
+    @rm -f obj/*.o
+    @rm -f obj/GPU/*.o
+    @rm -f obj/hash/*.o
