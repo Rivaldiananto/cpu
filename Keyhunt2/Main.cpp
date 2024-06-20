@@ -279,10 +279,9 @@ int main(int argc, const char* argv[])
 			gridSize.push_back(-1);
 			gridSize.push_back(128);
 		}
-		else if (gridSize.size() != gpuId.size() * 2) {
-			printf("Invalid gridSize or gpuId argument, must have coherent size\n");
-			exit(-1);
-		}
+	} else if (gridSize.size() != gpuId.size() * 2) {
+		printf("Invalid gridSize or gpuId argument, must have coherent size\n");
+		exit(-1);
 	}
 
 	if ((hash160.size() <= 0) && (hash160File.length() <= 0)) {
