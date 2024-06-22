@@ -76,11 +76,13 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
     this->addressFile = addressFile;
     this->maxFound = maxFound;
     this->searchType = P2PKH;
-    this->rangeStartBinary = rangeStart; // Simpan dalam format biner
+
+    // Simpan rentang dalam format biner
+    this->rangeStartBinary = hexToBinary(rangeStart);
     if (rangeEnd.length() <= 0) {
-        this->rangeEndBinary = addBinary(rangeStart, 10000000000000000);
+        this->rangeEndBinary = addBinary(this->rangeStartBinary, 10000000000000000);
     } else {
-        this->rangeEndBinary = rangeEnd;
+        this->rangeEndBinary = hexToBinary(rangeEnd);
         if (binaryToHex(this->rangeEndBinary) < binaryToHex(this->rangeStartBinary)) {
             printf("Start range is bigger than end range, so flipping ranges.\n");
             std::swap(this->rangeStartBinary, this->rangeEndBinary);
@@ -88,6 +90,7 @@ KeyHunt::KeyHunt(const std::string& addressFile, const std::vector<unsigned char
     }
     this->rangeDiffBinary = addBinary(this->rangeEndBinary, -std::stoull(this->rangeStartBinary, nullptr, 2));
 
+    // Konversi rentang biner ke hexadecimal untuk pemrosesan lebih lanjut
     this->rangeStart.SetBase16(binaryToHex(this->rangeStartBinary).c_str());
     this->rangeEnd.SetBase16(binaryToHex(this->rangeEndBinary).c_str());
     this->rangeDiff2.SetBase16(binaryToHex(this->rangeDiffBinary).c_str());
@@ -238,7 +241,6 @@ void KeyHunt::FindKeyCPU(TH_PARAM * ph)
         pts[CPU_GRP_SIZE / 2] = startP;
 
         for (i = 0; i < hLength && !endOfSearch; i++) {
-
             pp = startP;
             pn = startP;
 
@@ -274,7 +276,6 @@ void KeyHunt::FindKeyCPU(TH_PARAM * ph)
 
             pts[CPU_GRP_SIZE / 2 + (i + 1)] = pp;
             pts[CPU_GRP_SIZE / 2 - (i + 1)] = pn;
-
         }
 
         // First point (startP - (GRP_SZIE/2)*G)
@@ -424,7 +425,6 @@ void KeyHunt::FindKeyGPU(TH_PARAM * ph)
         }
         for (int i = 0; (int)found.size() && !endOfSearch; i++) {
             ITEM it = found[i];
-            //checkAddr(it.hash, keys[it.thId], it.incr, it.endo, it.mode);
             string addr = secp->GetAddress(searchType, it.mode, it.hash);
             if (checkPrivKey(addr, keys[it.thId], it.incr, it.mode)) {
                 nbFoundKey++;
@@ -527,15 +527,15 @@ void KeyHunt::Search(int nbThread, std::vector<int> gpuId, std::vector<int> grid
         params[i].rangeEndBinary = binaryToHex(rangeEndBinary);
 
         if (i < rangeShowThreasold) {
-            printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str()); // Perbaiki format di sini
+            printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str());
         } else if (rangeShowCounter < 1) {
             printf("             .\n");
             rangeShowCounter++;
             if (i + 1 == nbCPUThread) {
-                printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str()); // Perbaiki format di sini
+                printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str());
             }
         } else if (i + 1 == nbCPUThread) {
-            printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str()); // Perbaiki format di sini
+            printf("CPU Thread %02d: %s : %s\n", i, hexToBinary(params[i].rangeStart.GetBase16()).c_str(), hexToBinary(params[i].rangeEnd.GetBase16()).c_str());
         }
 
 #ifdef WIN64
@@ -563,7 +563,6 @@ void KeyHunt::Search(int nbThread, std::vector<int> gpuId, std::vector<int> grid
         rangeStart.Add(&rangeDiff);
         params[nbCPUThread + i].rangeEnd.Set(&rangeStart);
         params[nbCPUThread + i].rangeEndBinary = binaryToHex(rangeEndBinary);
-
 
 #ifdef WIN64
         DWORD thread_id;
@@ -610,7 +609,6 @@ void KeyHunt::Search(int nbThread, std::vector<int> gpuId, std::vector<int> grid
     p100.SetInt32(100);
 
     while (isAlive(params)) {
-
         int delay = 2000;
         while (isAlive(params) && delay > 0) {
             Timer::SleepMillis(500);
@@ -658,7 +656,7 @@ void KeyHunt::Search(int nbThread, std::vector<int> gpuId, std::vector<int> grid
         lastCount = count;
         lastGPUCount = gpuCount;
         t0 = t1;
-        if (should_exit || /*(completed > 120) ||*/ (addressMode == FILEMODE ? false : (nbFoundKey > 0)))
+        if (should_exit || (addressMode == FILEMODE ? false : (nbFoundKey > 0)))
             endOfSearch = true;
     }
 
@@ -761,7 +759,7 @@ bool KeyHunt::hasStarted(TH_PARAM * p)
 {
     bool hasStarted = true;
     int total = nbCPUThread + nbGPUThread;
-    for (int i = 0; total; i++)
+    for (int i = 0; i < total; i++)
         hasStarted = hasStarted && p[i].hasStarted;
 
     return hasStarted;
